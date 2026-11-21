@@ -275,6 +275,7 @@ def get_dashboard_stats(db: Session) -> dict:
 
     recent_activity = db.execute(
         select(models.OrderStatusHistory)
+        .options(selectinload(models.OrderStatusHistory.order))
         .order_by(models.OrderStatusHistory.changed_at.desc())
         .limit(10)
     ).scalars().all()

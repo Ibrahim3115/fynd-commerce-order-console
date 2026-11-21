@@ -56,6 +56,7 @@ class OrderItemOut(BaseModel):
 class OrderStatusHistoryOut(BaseModel):
     id: int
     order_id: int
+    order_reference: Optional[str] = None
     from_status: Optional[str] = None
     to_status: str
     changed_at: datetime

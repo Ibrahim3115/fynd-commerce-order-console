@@ -117,44 +117,60 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-slate-300 font-semibold text-sm">Order Items</h3>
                 <span className="text-xs text-slate-400 font-mono">
-                  {currentOrder.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) ?? 0} total units
+                  {(currentOrder.items || []).filter((item) => item && (item.product_name || item.product_name_snapshot || item.quantity > 0)).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)} total units
                 </span>
               </div>
               <div className="bg-brand-card border border-brand-border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="text-xs text-slate-500 uppercase border-b border-brand-border">
-                      <th className="text-left px-4 py-3">Product</th>
-                      <th className="text-right px-4 py-3">Qty</th>
-                      <th className="text-right px-4 py-3">Unit Price</th>
-                      <th className="text-right px-4 py-3">Line Total</th>
+                    <tr className="text-xs text-slate-500 uppercase border-b border-brand-border bg-brand-panel/40">
+                      <th className="text-left px-4 py-3 font-semibold">Product</th>
+                      <th className="text-right px-4 py-3 font-semibold w-20">Qty</th>
+                      <th className="text-right px-4 py-3 font-semibold w-28">Unit Price</th>
+                      <th className="text-right px-4 py-3 font-semibold w-32">Line Total</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {currentOrder.items && currentOrder.items.length > 0 ? (
-                      currentOrder.items.map((item) => (
-                        <tr key={item.id} className="border-b border-brand-border/50 last:border-0">
-                          <td className="px-4 py-3 text-slate-200">
-                            <p className="font-medium">{item.product_name || item.product_name_snapshot}</p>
-                            <p className="text-[11px] text-slate-500 font-mono">ID: #{item.product_id}</p>
+                  <tbody className="divide-y divide-brand-border/40">
+                    {(() => {
+                      const validItems = (currentOrder.items || []).filter(
+                        (item) => item && (item.product_name || item.product_name_snapshot || (item.product_id && item.quantity > 0))
+                      );
+                      if (validItems.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-xs">
+                              No items found for this order
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return validItems.map((item) => (
+                        <tr key={item.id || item.product_id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-3.5 text-left align-middle text-slate-200">
+                            <p className="font-semibold text-slate-100">{item.product_name || item.product_name_snapshot}</p>
+                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">ID: #{item.product_id}</p>
                           </td>
-                          <td className="px-4 py-3 text-right text-slate-300 font-mono font-semibold">{item.quantity}</td>
-                          <td className="px-4 py-3 text-right text-slate-300 font-mono">₹{item.unit_price.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right text-slate-100 font-semibold font-mono">₹{item.line_total.toLocaleString()}</td>
+                          <td className="px-4 py-3.5 text-right align-middle font-mono font-bold text-slate-200">
+                            {item.quantity}
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle font-mono text-slate-300">
+                            ₹{item.unit_price.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-4 py-3.5 text-right align-middle font-mono font-bold text-slate-100">
+                            ₹{item.line_total.toLocaleString('en-IN')}
+                          </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-6 text-center text-slate-500 text-xs">
-                          No items found for this order
-                        </td>
-                      </tr>
-                    )}
+                      ));
+                    })()}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-brand-panel">
-                      <td colSpan={3} className="px-4 py-3 text-right text-slate-400 font-medium">Grand Total</td>
-                      <td className="px-4 py-3 text-right text-brand-orange font-bold text-base">₹{currentOrder.total_amount.toLocaleString()}</td>
+                    <tr className="bg-brand-panel/90 border-t-2 border-brand-border">
+                      <td colSpan={3} className="px-4 py-3.5 text-right text-xs uppercase tracking-wider text-slate-400 font-semibold align-middle">
+                        Grand Total
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-mono text-brand-orange font-bold text-base align-middle">
+                        ₹{currentOrder.total_amount.toLocaleString('en-IN')}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -320,18 +336,18 @@ export const Orders: React.FC = () => {
         ) : orders.length === 0 ? (
           <EmptyState title="No orders found" description="Try adjusting your filters." />
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-brand-border">
+              <tr className="text-xs text-slate-500 uppercase tracking-wide border-b border-brand-border bg-brand-panel/30">
                 <th className="text-left px-5 py-3">Order Ref</th>
                 <th className="text-left px-5 py-3">Date</th>
-                <th className="text-left px-5 py-3">Items</th>
-                <th className="text-left px-5 py-3">Total</th>
-                <th className="text-left px-5 py-3">Status</th>
-                <th className="px-5 py-3">Actions</th>
+                <th className="text-right px-5 py-3">Items</th>
+                <th className="text-right px-5 py-3">Total</th>
+                <th className="text-center px-5 py-3">Status</th>
+                <th className="text-right px-5 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-brand-border/40">
               {orders.map((order) => {
                 const itemCount = order.items && Array.isArray(order.items)
                   ? order.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
@@ -340,37 +356,37 @@ export const Orders: React.FC = () => {
                 return (
                   <tr
                     key={order.id}
-                    className="border-b border-brand-border/50 hover:bg-white/5 transition-colors cursor-pointer"
+                    className="hover:bg-white/5 transition-colors cursor-pointer"
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <td className="px-5 py-3 font-mono text-xs text-brand-orange">{order.order_reference}</td>
-                    <td className="px-5 py-3 text-slate-400">{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="px-5 py-3 text-slate-200 font-mono font-medium">{itemCount}</td>
-                    <td className="px-5 py-3 text-slate-200 font-medium">₹{order.total_amount.toLocaleString()}</td>
-                    <td className="px-5 py-3"><StatusBadge status={order.status} /></td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="text-xs px-3 py-1 rounded bg-brand-panel border border-brand-border text-slate-300 hover:border-brand-orange hover:text-brand-orange transition-colors"
-                        onClick={() => setSelectedOrder(order)}
-                      >
-                        View
-                      </button>
-                      {STATUS_TRANSITIONS[order.status] && (
+                    <td className="px-5 py-3.5 font-mono text-xs text-brand-orange font-semibold align-middle">{order.order_reference}</td>
+                    <td className="px-5 py-3.5 text-slate-400 text-xs align-middle">{new Date(order.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-3.5 text-right text-slate-200 font-mono font-bold align-middle">{itemCount}</td>
+                    <td className="px-5 py-3.5 text-right text-slate-100 font-mono font-medium align-middle">₹{order.total_amount.toLocaleString('en-IN')}</td>
+                    <td className="px-5 py-3.5 text-center align-middle"><StatusBadge status={order.status} /></td>
+                    <td className="px-5 py-3.5 text-right align-middle">
+                      <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                         <button
-                          disabled={actionLoading === order.id}
-                          onClick={(e) => handleAdvance(order, e)}
-                          className="text-xs px-3 py-1 rounded bg-brand-orange/10 border border-brand-orange/40 text-brand-orange hover:bg-brand-orange/20 transition-colors disabled:opacity-50"
+                          className="text-xs px-3 py-1 rounded bg-brand-panel border border-brand-border text-slate-300 hover:border-brand-orange hover:text-brand-orange transition-colors"
+                          onClick={() => setSelectedOrder(order)}
                         >
-                          {actionLoading === order.id ? '...' : NEXT_LABEL[order.status]}
+                          View
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
+                        {STATUS_TRANSITIONS[order.status] && (
+                          <button
+                            disabled={actionLoading === order.id}
+                            onClick={(e) => handleAdvance(order, e)}
+                            className="text-xs px-3 py-1 rounded bg-brand-orange/10 border border-brand-orange/40 text-brand-orange hover:bg-brand-orange/20 transition-colors disabled:opacity-50 font-medium"
+                          >
+                            {actionLoading === order.id ? '...' : NEXT_LABEL[order.status]}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         )}
       </div>

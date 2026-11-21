@@ -71,3 +71,7 @@ class OrderStatusHistory(Base):
     notes = Column(String, nullable=True)
 
     order = relationship("Order", back_populates="status_history")
+
+    @property
+    def order_reference(self) -> str | None:
+        return self.order.order_reference if self.order else None
