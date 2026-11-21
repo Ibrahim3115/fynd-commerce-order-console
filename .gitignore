@@ -60,3 +60,4 @@ coverage.xml
 
 # Local backup files
 *.bak
+.neon
