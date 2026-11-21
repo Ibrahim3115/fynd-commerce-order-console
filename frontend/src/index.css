@@ -2,44 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-primary: #0f1117;
-  --bg-secondary: #161b27;
-  --bg-card: #1a2035;
-  --border: #2a3550;
-  --accent-orange: #f97316;
-  --accent-orange-dim: #c2410c;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
-  --success: #22c55e;
-  --warning: #eab308;
-  --danger: #ef4444;
+@layer base {
+  :root {
+    --bg-primary: #090B0E;
+    --bg-surface: #11151B;
+    --bg-secondary: #191F27;
+    --border: #252D37;
+    --border-subtle: #1C232C;
+    --accent: #E9A23B;
+    --accent-hover: #F5B04E;
+    --accent-dim: #C48126;
+    --text-primary: #F3F0E9;
+    --text-secondary: #929BA8;
+    --success: #10B981;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+  }
+
+  * {
+    box-sizing: border-box;
+    border-color: #252D37;
+  }
+
+  body {
+    background-color: #090B0E;
+    color: #F3F0E9;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }
 
-* {
-  box-sizing: border-box;
+/* Tabular numerals for data density */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-body {
-  background: #0f1117;
-  color: #f1f5f9;
-  font-family: 'Inter', system-ui, sans-serif;
-  margin: 0;
-  padding: 0;
-}
-
+/* Custom premium dark scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #161b27;
+  background: #090B0E;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3550;
-  border-radius: 3px;
+  background: #252D37;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #f97316;
+  background: #E9A23B;
+}
+
+/* Subtle animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
 }

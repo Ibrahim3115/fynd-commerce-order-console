@@ -3,59 +3,141 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
-  Plus,
-  Package,
-  Settings,
+  PlusCircle,
+  Boxes,
+  Sliders,
+  PanelLeftClose,
+  PanelLeftOpen,
   Zap,
 } from 'lucide-react';
+import { useSidebar } from '../context/SidebarContext';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
-  { to: '/orders', icon: ShoppingCart, label: 'Orders', end: false },
-  { to: '/create-order', icon: Plus, label: 'Create Order', end: false },
-  { to: '/inventory', icon: Package, label: 'Inventory', end: false },
-  { to: '/settings', icon: Settings, label: 'Settings', end: false },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', badge: 'Live', end: true },
+  { to: '/orders', icon: ShoppingCart, label: 'Orders', badge: null, end: false },
+  { to: '/create-order', icon: PlusCircle, label: 'Create Order', badge: 'New', end: false },
+  { to: '/inventory', icon: Boxes, label: 'Inventory', badge: null, end: false },
+  { to: '/settings', icon: Sliders, label: 'Settings', badge: null, end: false },
 ];
 
 export const Sidebar: React.FC = () => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
+
   return (
-    <aside className="fixed left-0 top-0 h-full w-[220px] bg-brand-panel border-r border-brand-border flex flex-col z-30">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-brand-border">
-        <div className="w-8 h-8 bg-brand-orange rounded-lg flex items-center justify-center">
-          <Zap className="w-4 h-4 text-white" />
+    <aside
+      className={`fixed left-0 top-0 h-full bg-brand-surface border-r border-brand-border flex flex-col z-30 transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'w-[72px]' : 'w-[240px]'
+      }`}
+    >
+      {/* Brand Header */}
+      <div className="h-16 flex items-center px-4 border-b border-brand-border justify-between">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-accent to-brand-accent-dim flex items-center justify-center flex-shrink-0 shadow-glow-accent">
+            <Zap className="w-5 h-5 text-brand-bg fill-brand-bg stroke-[2.5]" />
+          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 animate-fade-in">
+              <div className="flex items-center gap-1.5">
+                <span className="text-brand-accent font-extrabold text-base tracking-tight leading-none">FYND</span>
+                <span className="text-brand-text font-bold text-base tracking-tight leading-none">OPS</span>
+              </div>
+              <p className="text-[10px] text-brand-muted uppercase tracking-widest font-mono font-medium mt-1">
+                Command Center
+              </p>
+            </div>
+          )}
         </div>
-        <div>
-          <span className="text-brand-orange font-bold text-lg leading-none">FYND</span>
-          <span className="text-slate-300 font-bold text-lg leading-none"> OPS</span>
-        </div>
+
+        {!isCollapsed && (
+          <button
+            onClick={toggleSidebar}
+            className="text-brand-muted hover:text-brand-text p-1.5 rounded-lg hover:bg-brand-surface-2 transition-colors"
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-4 px-2">
-        {navItems.map(({ to, icon: Icon, label, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm font-medium transition-all duration-150 group
-              ${isActive
-                ? 'bg-brand-orange/10 text-brand-orange border-l-2 border-brand-orange pl-[10px]'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border-l-2 border-transparent'
-              }`
-            }
-          >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
+      {/* Navigation section */}
+      <div className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        {!isCollapsed && (
+          <p className="px-3 pt-1 pb-2 text-[10px] font-mono uppercase tracking-widest text-brand-dim font-semibold">
+            Telemetry & Ops
+          </p>
+        )}
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-brand-border">
-        <p className="text-xs text-slate-600">FYND OPS v1.0.0</p>
-        <p className="text-xs text-slate-700">Hackathon Build</p>
+        <nav className="space-y-1">
+          {navItems.map(({ to, icon: Icon, label, badge, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  isActive
+                    ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/30 shadow-inner'
+                    : 'text-brand-muted hover:text-brand-text hover:bg-brand-surface-2 border border-transparent'
+                } ${isCollapsed ? 'justify-center px-0' : ''}`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    className={`w-4 h-4 flex-shrink-0 transition-colors ${
+                      isActive ? 'text-brand-accent' : 'text-brand-muted group-hover:text-brand-text'
+                    }`}
+                  />
+                  {!isCollapsed ? (
+                    <div className="flex-1 flex items-center justify-between min-w-0">
+                      <span className="truncate">{label}</span>
+                      {badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold uppercase bg-brand-surface-2 text-brand-accent border border-brand-accent/20">
+                          {badge}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    /* Floating tooltip in collapsed mode */
+                    <div className="absolute left-full ml-3 px-2.5 py-1 bg-brand-surface border border-brand-border rounded-md text-xs font-semibold text-brand-text whitespace-nowrap shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
+                      {label}
+                    </div>
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+
+      {/* Sidebar Footer */}
+      <div className="p-3 border-t border-brand-border bg-brand-surface-2/40">
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={toggleSidebar}
+              className="text-brand-muted hover:text-brand-text p-2 rounded-lg hover:bg-brand-surface-2 transition-colors"
+              title="Expand sidebar"
+            >
+              <PanelLeftOpen className="w-4 h-4 text-brand-accent" />
+            </button>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Online" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-brand-muted font-mono">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                ACID Engine
+              </span>
+              <span className="text-emerald-400 font-semibold">ONLINE</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-brand-dim font-mono pt-1 border-t border-brand-border/60">
+              <span>FYND OPS v2.0</span>
+              <span>ENTERPRISE</span>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

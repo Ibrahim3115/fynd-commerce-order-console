@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Minus, Trash2, ShoppingCart, CheckCircle, AlertCircle, PackageCheck, AlertTriangle
+  Plus, Minus, Trash2, ShoppingCart, CheckCircle, AlertCircle,
+  PackageCheck, AlertTriangle, ArrowRight, ShieldCheck,
+  Search, X
 } from 'lucide-react';
 import { getProducts } from '../api/products';
 import { createOrder } from '../api/orders';
@@ -17,6 +19,8 @@ export const CreateOrder: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [createdOrderRef, setCreatedOrderRef] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
 
   const fetchProducts = async () => {
     try {
@@ -24,7 +28,7 @@ export const CreateOrder: React.FC = () => {
       const data = await getProducts();
       setProducts(data);
     } catch {
-      notify('Failed to load catalogue products', 'error');
+      notify('Failed to load catalogue inventory', 'error');
     } finally {
       setLoading(false);
     }
@@ -33,6 +37,21 @@ export const CreateOrder: React.FC = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  const categories = useMemo(() => {
+    return ['ALL', ...Array.from(new Set(products.map((p) => p.category)))];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchSearch =
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.sku.toLowerCase().includes(search.toLowerCase()) ||
+        p.description.toLowerCase().includes(search.toLowerCase());
+      const matchCategory = categoryFilter === 'ALL' || p.category === categoryFilter;
+      return matchSearch && matchCategory;
+    });
+  }, [products, search, categoryFilter]);
 
   const addToCart = (product: Product) => {
     if (product.stock_quantity <= 0) {
@@ -44,13 +63,11 @@ export const CreateOrder: React.FC = () => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         if (existing.quantity >= product.stock_quantity) {
-          notify(`Cannot exceed available stock of ${product.stock_quantity} units`, 'error');
+          notify(`Cannot exceed available inventory of ${product.stock_quantity} units`, 'error');
           return prev;
         }
         return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
       return [...prev, { product, quantity: 1 }];
@@ -83,15 +100,16 @@ export const CreateOrder: React.FC = () => {
   const clearCart = () => setCart([]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const totalUnitsInCart = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) {
-      notify('Cannot place an empty order. Please add products.', 'error');
+      notify('Cannot dispatch an empty manifest. Please add products.', 'error');
       return;
     }
 
-    // Client-side verification
+    // Client-side validation
     for (const item of cart) {
       if (item.quantity <= 0) {
         notify(`Invalid quantity for ${item.product.name}`, 'error');
@@ -117,12 +135,11 @@ export const CreateOrder: React.FC = () => {
 
       const res = await createOrder(payload);
       setCreatedOrderRef(res.order_reference);
-      notify(`Order ${res.order_reference} placed successfully!`, 'success');
+      notify(`Order ${res.order_reference} authorized & dispatched to fulfilment!`, 'success');
       clearCart();
-      // Refresh product stock
       fetchProducts();
     } catch (err: any) {
-      const msg = err.response?.data?.detail || 'Failed to place order';
+      const msg = err.response?.data?.detail || 'Failed to authorize order';
       notify(msg, 'error');
     } finally {
       setSubmitting(false);
@@ -139,95 +156,150 @@ export const CreateOrder: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header banner */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-slate-100">Create New Order</h2>
-          <p className="text-sm text-slate-400">
-            Select inventory items and quantities to initiate an operational order
+          <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
+            <PackageCheck className="w-5 h-5 text-brand-orange" />
+            Order Creation & Manifest Entry Workstation
+          </h2>
+          <p className="text-xs text-brand-muted mt-0.5">
+            Select catalogued products, configure line quantities, and dispatch with atomic stock allocation
           </p>
         </div>
       </div>
 
-      {/* Success notification if order created */}
+      {/* Success Notification Banner */}
       {createdOrderRef && (
-        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in shadow-card">
           <div className="flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-green-400" />
+            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
+              <CheckCircle className="w-5 h-5" />
+            </div>
             <div>
-              <p className="text-sm font-semibold text-green-200">
-                Order Created Successfully: <span className="font-mono">{createdOrderRef}</span>
+              <p className="text-xs uppercase font-mono tracking-wider text-emerald-400 font-bold">
+                Order Dispatched Successfully
               </p>
-              <p className="text-xs text-green-400/80">
-                Stock has been reserved and deducted atomically. Status set to PLACED.
+              <p className="text-sm font-mono font-bold text-brand-text mt-0.5">
+                Reference: <span className="text-brand-orange">{createdOrderRef}</span>
+              </p>
+              <p className="text-[11px] text-emerald-400/80 mt-0.5">
+                Stock deducted atomically. Fulfilment state initialized to PLACED.
               </p>
             </div>
           </div>
-          <button
-            onClick={() => navigate('/orders')}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-semibold rounded-lg transition"
-          >
-            View in Orders
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCreatedOrderRef(null)}
+              className="px-3 py-1.5 text-xs text-brand-muted hover:text-brand-text transition-colors"
+            >
+              Dismiss
+            </button>
+            <button
+              onClick={() => navigate('/orders')}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-brand-text text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-md shadow-emerald-900/30"
+            >
+              <span>View in Orders Ledger</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Two-panel Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Product Catalogue (7 cols) */}
+        {/* Left: Product Catalogue Selection (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-200 flex items-center gap-2">
-                <PackageCheck className="w-4 h-4 text-brand-orange" />
-                Available Warehouse Catalogue
-              </h3>
-              <span className="text-xs text-slate-500">{products.length} products total</span>
+          <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-card">
+            {/* Catalogue Filter & Search */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-5">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCategoryFilter(c)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                      categoryFilter === c
+                        ? 'bg-brand-orange text-brand-dark font-bold shadow-sm'
+                        : 'bg-brand-surface-raised/40 text-brand-muted hover:text-brand-text hover:bg-brand-surface-raised'
+                    }`}
+                  >
+                    {c === 'ALL' ? 'All' : c}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative flex-1 sm:w-48">
+                <Search className="w-3.5 h-3.5 text-brand-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Filter catalogue..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-8 pr-7 py-1.5 bg-brand-dark border border-brand-border rounded-lg text-xs text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-orange transition-colors"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-text"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {products.map((p) => {
+            {/* Product Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {filteredProducts.map((p) => {
                 const isOutOfStock = p.stock_quantity === 0;
                 const isLowStock = p.stock_quantity > 0 && p.stock_quantity < 5;
                 const inCart = cart.find((i) => i.product.id === p.id);
+                const cartQty = inCart ? inCart.quantity : 0;
+                const isMaxedOut = cartQty >= p.stock_quantity;
 
                 return (
                   <div
                     key={p.id}
-                    className={`bg-brand-card border rounded-lg p-4 flex flex-col justify-between transition-all ${
+                    className={`bg-brand-dark/50 border rounded-xl p-4 flex flex-col justify-between transition-all ${
                       isOutOfStock
-                        ? 'border-red-900/40 opacity-70'
-                        : 'border-brand-border hover:border-slate-600'
+                        ? 'border-red-950/60 opacity-60'
+                        : cartQty > 0
+                        ? 'border-brand-orange/60 bg-brand-surface-raised/30 ring-1 ring-brand-orange/20'
+                        : 'border-brand-border hover:border-brand-muted/40 hover:bg-brand-surface-raised/20'
                     }`}
                   >
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="font-semibold text-sm text-slate-100">{p.name}</h4>
-                        <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <span className="font-mono text-[10px] uppercase font-bold text-brand-orange">
                           {p.sku}
                         </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-surface-raised text-brand-muted border border-brand-border font-mono uppercase">
+                          {p.category}
+                        </span>
                       </div>
-                      <p className="text-xs text-slate-400 mb-3">{p.description}</p>
+                      <h4 className="font-bold text-sm text-brand-text leading-snug">{p.name}</h4>
+                      <p className="text-[11px] text-brand-muted mt-1 line-clamp-2">{p.description}</p>
                     </div>
 
-                    <div className="pt-3 border-t border-brand-border/60">
+                    <div className="pt-3 mt-3 border-t border-brand-border/60">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-base font-bold text-slate-100">
+                        <span className="text-sm font-bold font-mono text-brand-text tabular-nums">
                           ₹{p.price.toLocaleString('en-IN')}
                         </span>
                         <div>
                           {isOutOfStock ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400 bg-red-950/60 border border-red-800/60 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
                               <AlertCircle className="w-3 h-3" />
-                              Out of Stock
+                              Depleted
                             </span>
                           ) : isLowStock ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-950/60 border border-amber-800/60 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
                               <AlertTriangle className="w-3 h-3" />
                               Low: {p.stock_quantity} left
                             </span>
                           ) : (
-                            <span className="text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded font-medium">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
                               Stock: {p.stock_quantity}
                             </span>
                           )}
@@ -236,23 +308,23 @@ export const CreateOrder: React.FC = () => {
 
                       <button
                         onClick={() => addToCart(p)}
-                        disabled={isOutOfStock || (inCart ? inCart.quantity >= p.stock_quantity : false)}
-                        className={`w-full py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                        disabled={isOutOfStock || isMaxedOut}
+                        className={`w-full py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
                           isOutOfStock
-                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                            : inCart && inCart.quantity >= p.stock_quantity
-                            ? 'bg-slate-800 text-slate-400 cursor-not-allowed'
-                            : 'bg-brand-orange hover:bg-orange-600 text-white shadow-sm'
+                            ? 'bg-brand-surface-raised text-brand-muted/40 cursor-not-allowed border border-brand-border'
+                            : isMaxedOut
+                            ? 'bg-brand-surface-raised text-brand-muted cursor-not-allowed border border-brand-border'
+                            : 'bg-brand-orange hover:bg-brand-orange-light text-brand-dark shadow-sm hover:shadow-brand-orange/20'
                         }`}
                       >
                         <Plus className="w-3.5 h-3.5" />
                         {isOutOfStock
                           ? 'Out of Stock'
-                          : inCart && inCart.quantity >= p.stock_quantity
-                          ? 'Max Stock in Cart'
-                          : inCart
-                          ? `Add Another (Cart: ${inCart.quantity})`
-                          : 'Add to Order'}
+                          : isMaxedOut
+                          ? `Max in Manifest (${cartQty})`
+                          : cartQty > 0
+                          ? `Add Another (Cart: ${cartQty})`
+                          : 'Add to Manifest'}
                       </button>
                     </div>
                   </div>
@@ -262,18 +334,20 @@ export const CreateOrder: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Order Cart / Manifest Summary (5 cols) */}
+        {/* Right: Live Sticky Cart / Order Manifest Summary (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-brand-panel border border-brand-border rounded-xl p-5 sticky top-20">
-            <div className="flex items-center justify-between pb-4 border-b border-brand-border">
+          <div className="bg-brand-surface border border-brand-border rounded-xl p-5 sticky top-20 shadow-card">
+            <div className="flex items-center justify-between pb-3.5 border-b border-brand-border">
               <div className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-brand-orange" />
-                <h3 className="font-semibold text-slate-100">Order Manifest</h3>
+                <ShoppingCart className="w-4 h-4 text-brand-orange" />
+                <h3 className="font-bold text-xs uppercase font-mono tracking-wider text-brand-text">
+                  Order Manifest
+                </h3>
               </div>
               {cart.length > 0 && (
                 <button
                   onClick={clearCart}
-                  className="text-xs text-slate-400 hover:text-red-400 transition"
+                  className="text-[11px] font-mono text-brand-muted hover:text-red-400 transition-colors"
                 >
                   Clear All
                 </button>
@@ -281,60 +355,64 @@ export const CreateOrder: React.FC = () => {
             </div>
 
             {cart.length === 0 ? (
-              <div className="py-14 text-center">
-                <ShoppingCart className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-                <p className="text-sm font-medium text-slate-300">Manifest is empty</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                  Select products from the warehouse catalogue on the left to build an order.
+              <div className="py-16 text-center">
+                <div className="w-12 h-12 rounded-xl bg-brand-surface-raised/40 border border-brand-border flex items-center justify-center mx-auto mb-3">
+                  <ShoppingCart className="w-5 h-5 text-brand-muted/60" />
+                </div>
+                <p className="text-xs font-bold uppercase font-mono text-brand-text tracking-wider">
+                  Manifest is Empty
+                </p>
+                <p className="text-[11px] text-brand-muted mt-1 max-w-xs mx-auto">
+                  Select catalogued items from the inventory ledger on the left to prepare an order.
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-brand-border/60 max-h-[380px] overflow-y-auto my-3 pr-1">
+              <div className="divide-y divide-brand-border/40 max-h-[360px] overflow-y-auto my-3 pr-1">
                 {cart.map(({ product, quantity }) => (
                   <div key={product.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-slate-100 truncate">{product.name}</p>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-xs font-bold text-brand-text truncate">{product.name}</p>
+                      <p className="text-[10px] font-mono text-brand-muted mt-0.5">
                         ₹{product.price.toLocaleString('en-IN')} × {quantity}
                       </p>
-                      <p className="text-[10px] text-emerald-400">
-                        Available in stock: {product.stock_quantity}
+                      <p className="text-[10px] font-mono text-emerald-400/90 mt-0.5">
+                        Available in catalogue: {product.stock_quantity} units
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center border border-brand-border rounded-lg bg-brand-card">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-center border border-brand-border rounded-lg bg-brand-dark">
                         <button
                           type="button"
                           onClick={() => updateQuantity(product.id, quantity - 1)}
-                          className="p-1 hover:text-brand-orange text-slate-300 transition"
-                          title="Decrease"
+                          className="p-1 text-brand-muted hover:text-brand-orange transition-colors"
+                          title="Decrease Quantity"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-8 text-center text-xs font-semibold text-slate-100 font-mono">
+                        <span className="w-7 text-center text-xs font-mono font-bold text-brand-text tabular-nums">
                           {quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQuantity(product.id, quantity + 1)}
                           disabled={quantity >= product.stock_quantity}
-                          className="p-1 hover:text-brand-orange text-slate-300 disabled:opacity-40 disabled:hover:text-slate-300 transition"
-                          title="Increase"
+                          className="p-1 text-brand-muted hover:text-brand-orange disabled:opacity-30 disabled:hover:text-brand-muted transition-colors"
+                          title="Increase Quantity"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
-                      <span className="text-xs font-bold text-slate-200 w-16 text-right">
+                      <span className="text-xs font-mono font-bold text-brand-text w-16 text-right tabular-nums">
                         ₹{(product.price * quantity).toLocaleString('en-IN')}
                       </span>
 
                       <button
                         type="button"
                         onClick={() => removeFromCart(product.id)}
-                        className="p-1 text-slate-500 hover:text-red-400 transition"
-                        title="Remove item"
+                        className="p-1 text-brand-muted hover:text-red-400 transition-colors"
+                        title="Remove SKU from Manifest"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -344,17 +422,18 @@ export const CreateOrder: React.FC = () => {
               </div>
             )}
 
-            {/* Calculations & Submit */}
+            {/* Calculations & Order Dispatch Actions */}
             <div className="pt-4 border-t border-brand-border space-y-3">
-              <div className="flex justify-between text-xs text-slate-400">
-                <span>Items Selected</span>
-                <span className="font-semibold text-slate-200">
-                  {cart.reduce((s, i) => s + i.quantity, 0)} units ({cart.length} SKUs)
+              <div className="flex justify-between text-xs font-mono text-brand-muted">
+                <span>Total Manifest Units</span>
+                <span className="font-bold text-brand-text tabular-nums">
+                  {totalUnitsInCart} units ({cart.length} SKUs)
                 </span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-slate-100 pt-1 border-t border-brand-border/40">
-                <span>Total Amount</span>
-                <span className="text-base text-brand-orange font-mono">
+
+              <div className="flex justify-between items-center text-sm font-bold text-brand-text pt-2 border-t border-brand-border/40">
+                <span className="font-mono uppercase tracking-wider text-xs">Total Order Value</span>
+                <span className="text-base text-brand-orange font-mono font-bold tabular-nums">
                   ₹{subtotal.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -362,24 +441,27 @@ export const CreateOrder: React.FC = () => {
               <button
                 onClick={handleSubmitOrder}
                 disabled={cart.length === 0 || submitting}
-                className="w-full mt-4 py-3 bg-brand-orange hover:bg-orange-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2"
+                className="w-full mt-3 py-3 bg-brand-orange hover:bg-brand-orange-light disabled:bg-brand-surface-raised disabled:text-brand-muted/40 disabled:cursor-not-allowed text-brand-dark font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-brand-orange/20 flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <>
                     <LoadingSpinner size="sm" />
-                    <span>Committing Transaction...</span>
+                    <span>Reserving Stock & Authorizing...</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    <span>Dispatch Order to Fulfilment</span>
+                    <span>Authorize & Dispatch Order</span>
                   </>
                 )}
               </button>
 
-              <p className="text-[11px] text-slate-500 text-center">
-                Submitting executes an atomic stock reservation in a single ACID transaction.
-              </p>
+              <div className="p-2.5 rounded-lg bg-brand-dark border border-brand-border flex items-center gap-2 text-[10px] font-mono text-brand-muted">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>
+                  ACID guaranteed. Inventory deducted instantly upon order confirmation.
+                </span>
+              </div>
             </div>
           </div>
         </div>
