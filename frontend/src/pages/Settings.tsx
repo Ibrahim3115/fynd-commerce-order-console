@@ -29,45 +29,45 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div>
-        <h2 className="text-lg font-bold text-brand-text flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-brand-orange" />
-          System Architecture & Console Telemetry
+      <div className="pb-2 border-b border-brand-border">
+        <h2 className="text-[26px] font-semibold text-brand-text tracking-tight flex items-center gap-2.5">
+          <Terminal className="w-5 h-5 text-brand-accent" />
+          Settings & Architecture
         </h2>
-        <p className="text-xs text-brand-muted mt-0.5">
-          Operational telemetry, backend API health status, and state transition specifications
+        <p className="text-[13px] text-brand-secondary mt-0.5">
+          Backend API gateway health, ACID fulfilment state machine and technical specifications
         </p>
       </div>
 
-      {/* Connection & Health Card */}
-      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-card">
+      {/* Gateway Health Card */}
+      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-subtle">
         <div className="flex items-center justify-between pb-3.5 border-b border-brand-border">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-brand-surface-raised text-brand-orange border border-brand-border">
+            <div className="p-2 rounded-lg bg-brand-surface-raised text-brand-accent border border-brand-border">
               <Server className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-brand-text">Backend Operations Gateway</h3>
-              <p className="text-xs text-brand-muted font-mono">{backendUrl}</p>
+              <h3 className="font-medium text-[14px] text-brand-text">Backend Operations Gateway</h3>
+              <p className="text-[12px] text-brand-muted font-mono">{backendUrl}</p>
             </div>
           </div>
           <button
             onClick={checkHealth}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-surface-raised hover:bg-brand-border border border-brand-border rounded-lg text-xs font-semibold text-brand-muted hover:text-brand-orange transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-surface-raised hover:bg-brand-border border border-brand-border rounded-lg text-[13px] font-medium text-brand-secondary hover:text-brand-text transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${healthStatus === 'checking' ? 'animate-spin' : ''}`} />
-            Probe Gateway Health
+            Check Health
           </button>
         </div>
 
-        <div className="flex items-center gap-3 p-3.5 rounded-lg bg-brand-dark border border-brand-border">
+        <div className="flex items-center gap-3 p-3.5 rounded-lg bg-brand-bg border border-brand-border">
           {healthStatus === 'healthy' ? (
             <>
               <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
               <div>
-                <p className="text-xs font-mono font-bold text-emerald-400">REST API Gateway Operational</p>
+                <p className="text-[13px] font-medium text-emerald-400">REST API Operational</p>
                 <p className="text-[11px] font-mono text-brand-muted mt-0.5">
-                  Payload: {JSON.stringify(healthDetails)}
+                  Response: {JSON.stringify(healthDetails)}
                 </p>
               </div>
             </>
@@ -75,101 +75,101 @@ export const Settings: React.FC = () => {
             <>
               <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
               <div>
-                <p className="text-xs font-mono font-bold text-red-400">Gateway Offline / Unreachable</p>
+                <p className="text-[13px] font-medium text-red-400">Gateway Offline / Unreachable</p>
                 <p className="text-[11px] font-mono text-brand-muted mt-0.5">
-                  Ensure backend FastAPI daemon is listening on port 8000.
+                  Verify backend FastAPI daemon is listening on port 8000.
                 </p>
               </div>
             </>
           ) : (
-            <p className="text-xs font-mono text-brand-muted">Probing /health endpoint...</p>
+            <p className="text-[13px] text-brand-muted">Probing /health endpoint...</p>
           )}
         </div>
       </div>
 
       {/* State Machine Specification */}
-      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-card">
+      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-subtle">
         <div className="flex items-center gap-2.5 pb-3 border-b border-brand-border">
-          <GitBranch className="w-4 h-4 text-brand-orange" />
-          <h3 className="font-bold text-xs uppercase font-mono tracking-wider text-brand-text">
+          <GitBranch className="w-4 h-4 text-brand-accent" />
+          <h3 className="font-medium text-[14px] text-brand-text">
             Fulfilment State Machine Specification
           </h3>
         </div>
 
-        <div className="p-4 rounded-xl bg-brand-dark border border-brand-border font-mono text-xs text-brand-muted space-y-3">
+        <div className="p-4 rounded-xl bg-brand-bg border border-brand-border text-[13px] text-brand-secondary space-y-3">
           <div>
-            <p className="text-emerald-400 font-bold uppercase tracking-wider text-[11px] mb-1.5 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Permitted State Transitions (Guaranteed ACID Atomic)
+            <p className="text-emerald-400 font-medium text-[12px] mb-2 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4" />
+              Permitted State Transitions (Guaranteed Atomic)
             </p>
-            <ul className="space-y-1 pl-4 list-disc text-[11px]">
+            <ul className="space-y-1.5 pl-4 list-disc text-[13px]">
               <li>
-                <span className="text-blue-400 font-bold">PLACED</span> ➔{' '}
-                <span className="text-amber-400 font-bold">PACKED</span> (Warehouse staff picks, packages, and verifies inventory)
+                <span className="text-blue-400 font-medium font-mono text-[12px]">PLACED</span> ➔{' '}
+                <span className="text-amber-400 font-medium font-mono text-[12px]">PACKED</span> (Warehouse picks, packages, and verifies inventory)
               </li>
               <li>
-                <span className="text-amber-400 font-bold">PACKED</span> ➔{' '}
-                <span className="text-emerald-400 font-bold">SHIPPED</span> (Courier consignment handover & dispatch)
+                <span className="text-amber-400 font-medium font-mono text-[12px]">PACKED</span> ➔{' '}
+                <span className="text-emerald-400 font-medium font-mono text-[12px]">SHIPPED</span> (Courier consignment handover and dispatch)
               </li>
               <li>
-                <span className="text-blue-400 font-bold">PLACED</span> ➔{' '}
-                <span className="text-red-400 font-bold">CANCELLED</span> (Atomic rollback: restores stock to inventory catalogue)
+                <span className="text-blue-400 font-medium font-mono text-[12px]">PLACED</span> ➔{' '}
+                <span className="text-red-400 font-medium font-mono text-[12px]">CANCELLED</span> (Atomic rollback: restores stock to inventory catalogue)
               </li>
               <li>
-                <span className="text-amber-400 font-bold">PACKED</span> ➔{' '}
-                <span className="text-red-400 font-bold">CANCELLED</span> (Atomic rollback: unpacks order & restores stock)
+                <span className="text-amber-400 font-medium font-mono text-[12px]">PACKED</span> ➔{' '}
+                <span className="text-red-400 font-medium font-mono text-[12px]">CANCELLED</span> (Atomic rollback: unpacks order and restores stock)
               </li>
             </ul>
           </div>
 
-          <div className="pt-2 border-t border-brand-border/60">
-            <p className="text-red-400 font-bold uppercase tracking-wider text-[11px] mb-1">
-              Strictly Prohibited Illegal Transitions (HTTP 422 Rejection)
+          <div className="pt-2.5 border-t border-brand-border">
+            <p className="text-red-400 font-medium text-[12px] mb-1">
+              Prohibited Transitions (Rejected with HTTP 422)
             </p>
-            <p className="text-[11px] text-brand-muted/80">
-              PLACED ➔ SHIPPED (forbidden without packaging verification) · SHIPPED ➔ CANCELLED (cannot recall dispatched parcel consignments) · CANCELLED ➔ ANY (terminal state)
+            <p className="text-[12px] text-brand-muted">
+              PLACED ➔ SHIPPED (forbidden without packaging verification) · SHIPPED ➔ CANCELLED (cannot recall dispatched parcels) · CANCELLED ➔ ANY (terminal state)
             </p>
           </div>
         </div>
       </div>
 
-      {/* Engineering Architecture Details */}
-      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-card">
+      {/* Technical Architecture Stack */}
+      <div className="bg-brand-surface border border-brand-border rounded-xl p-5 space-y-4 shadow-subtle">
         <div className="flex items-center gap-2.5 pb-3 border-b border-brand-border">
-          <Layers className="w-4 h-4 text-brand-orange" />
-          <h3 className="font-bold text-xs uppercase font-mono tracking-wider text-brand-text">
-            Technical Architecture Stack
+          <Layers className="w-4 h-4 text-brand-accent" />
+          <h3 className="font-medium text-[14px] text-brand-text">
+            Technical Architecture
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
-          <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-            <p className="font-bold text-brand-text mb-1.5 flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-brand-orange" /> Frontend Core
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-[13px]">
+          <div className="p-4 bg-brand-bg rounded-xl border border-brand-border">
+            <p className="font-medium text-brand-text mb-1 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-brand-accent" /> Frontend
             </p>
-            <p className="text-brand-muted text-[11px]">React 18 + Vite + TypeScript + Tailwind CSS</p>
-            <p className="text-brand-muted/70 text-[10px] mt-1 font-mono">
-              Lucide Icons · Recharts Analytics · Collapsible Navigation
-            </p>
-          </div>
-
-          <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-            <p className="font-bold text-brand-text mb-1.5 flex items-center gap-2">
-              <Server className="w-4 h-4 text-brand-orange" /> Backend Services
-            </p>
-            <p className="text-brand-muted text-[11px]">Python 3.13 + FastAPI + Pydantic v2</p>
-            <p className="text-brand-muted/70 text-[10px] mt-1 font-mono">
-              Eager loading · Custom exception handling · Pytest
+            <p className="text-brand-secondary text-[12px]">React 18, Vite, TypeScript, Tailwind CSS</p>
+            <p className="text-brand-muted text-[11px] mt-1">
+              Inter typography, Lucide icons, Recharts analytics
             </p>
           </div>
 
-          <div className="p-4 bg-brand-dark rounded-xl border border-brand-border">
-            <p className="font-bold text-brand-text mb-1.5 flex items-center gap-2">
-              <HardDrive className="w-4 h-4 text-brand-orange" /> Persistence Layer
+          <div className="p-4 bg-brand-bg rounded-xl border border-brand-border">
+            <p className="font-medium text-brand-text mb-1 flex items-center gap-2">
+              <Server className="w-4 h-4 text-brand-accent" /> Backend
             </p>
-            <p className="text-brand-muted text-[11px]">SQLAlchemy 2.0 ORM + SQLite Persistent DB</p>
-            <p className="text-brand-muted/70 text-[10px] mt-1 font-mono">
-              Foreign keys · Cascade rules · Atomic commits & rollbacks
+            <p className="text-brand-secondary text-[12px]">Python 3.13, FastAPI, Pydantic v2</p>
+            <p className="text-brand-muted text-[11px] mt-1">
+              Eager loading, exception handlers, automated tests
+            </p>
+          </div>
+
+          <div className="p-4 bg-brand-bg rounded-xl border border-brand-border">
+            <p className="font-medium text-brand-text mb-1 flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-brand-accent" /> Persistence
+            </p>
+            <p className="text-brand-secondary text-[12px]">SQLAlchemy 2.0 ORM, SQLite DB</p>
+            <p className="text-brand-muted text-[11px] mt-1">
+              Foreign keys, cascade rules, atomic transactions
             </p>
           </div>
         </div>

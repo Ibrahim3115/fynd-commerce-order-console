@@ -5,7 +5,6 @@ import {
   Package,
   Calendar,
   Clock,
-  Radio,
   PanelLeftOpen,
   User,
 } from 'lucide-react';
@@ -16,23 +15,23 @@ import { useSidebar } from '../context/SidebarContext';
 const pageConfig: Record<string, { title: string; subtitle: string }> = {
   '/': {
     title: 'Operations Dashboard',
-    subtitle: 'Real-time telemetry, fulfilment metrics & stock warnings',
+    subtitle: 'Real-time telemetry, fulfilment metrics and stock warnings',
   },
   '/orders': {
     title: 'Order Management',
     subtitle: 'Search, track, inspect and transition customer orders',
   },
   '/create-order': {
-    title: 'Create Order Workstation',
-    subtitle: 'Pick catalogue items, build manifests & commit transactions',
+    title: 'Create Order',
+    subtitle: 'Select catalogue items, configure quantities and place orders',
   },
   '/inventory': {
-    title: 'Warehouse Inventory',
-    subtitle: 'Product catalogue ledger, SKU pricing & stock availability',
+    title: 'Inventory Catalogue',
+    subtitle: 'Warehouse product catalogue, SKU pricing and stock levels',
   },
   '/settings': {
-    title: 'System Settings & Architecture',
-    subtitle: 'FastAPI gateway status, ACID contracts & telemetry nodes',
+    title: 'Settings & Architecture',
+    subtitle: 'API gateway status, ACID contracts and system specifications',
   },
 };
 
@@ -81,7 +80,7 @@ export const TopBar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 right-0 h-16 bg-brand-surface/95 backdrop-blur-md border-b border-brand-border flex items-center px-6 z-20 gap-4 transition-all duration-300 ease-in-out ${
+      className={`fixed top-0 right-0 h-16 bg-brand-surface border-b border-brand-border flex items-center px-6 z-20 gap-4 transition-all duration-200 ease-in-out ${
         isCollapsed ? 'left-[72px]' : 'left-[240px]'
       }`}
     >
@@ -90,73 +89,61 @@ export const TopBar: React.FC = () => {
         {isCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="text-brand-muted hover:text-brand-accent p-1.5 rounded-lg hover:bg-brand-surface-2 transition-colors"
+            className="text-brand-muted hover:text-brand-text p-1.5 rounded-md hover:bg-brand-surface-raised transition-colors"
             title="Expand sidebar"
+            aria-label="Expand sidebar"
           >
-            <PanelLeftOpen className="w-5 h-5 text-brand-accent" />
+            <PanelLeftOpen className="w-4 h-4 text-brand-secondary" />
           </button>
         )}
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-brand-text font-bold text-base tracking-tight truncate">
-              {activePage.title}
-            </h1>
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold bg-brand-surface-2 border border-brand-border text-brand-muted">
-              Live Node
-            </span>
-          </div>
-          <p className="text-xs text-brand-muted truncate hidden sm:block">
+          <h1 className="text-brand-text font-semibold text-[15px] truncate">
+            {activePage.title}
+          </h1>
+          <p className="text-[12px] text-brand-secondary truncate hidden sm:block">
             {activePage.subtitle}
           </p>
         </div>
       </div>
 
-      {/* Right: Live Telemetry Badges */}
+      {/* Right: Telemetry Badges */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        {/* System Online Badge */}
-        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface-2 border border-brand-border text-xs">
-          <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-          <span className="text-[11px] font-mono font-medium text-slate-300">
-            ENGINE <span className="text-emerald-400 font-bold">ONLINE</span>
-          </span>
-        </div>
-
         {/* Live Counters from Backend Data */}
         {stats && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/30 shadow-inner">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-raised border border-brand-border">
               <ShoppingBag className="w-3.5 h-3.5 text-brand-accent" />
-              <span className="text-brand-accent text-xs font-mono font-bold">
+              <span className="text-brand-text text-[12px] font-medium font-mono tabular-nums">
                 {stats.total_orders}{' '}
-                <span className="text-[10px] font-sans font-normal opacity-80">orders</span>
+                <span className="font-sans text-[11px] font-normal text-brand-secondary">orders</span>
               </span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-surface-2 border border-brand-border">
-              <Package className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-slate-300 text-xs font-mono font-semibold">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-raised border border-brand-border">
+              <Package className="w-3.5 h-3.5 text-brand-secondary" />
+              <span className="text-brand-text text-[12px] font-medium font-mono tabular-nums">
                 {stats.total_inventory}{' '}
-                <span className="text-[10px] font-sans font-normal text-brand-muted">units</span>
+                <span className="font-sans text-[11px] font-normal text-brand-secondary">units</span>
               </span>
             </div>
           </div>
         )}
 
         {/* Live Clock & Date */}
-        <div className="hidden md:flex flex-col items-end text-xs font-mono border-l border-brand-border/60 pl-3">
-          <div className="flex items-center gap-1.5 text-brand-text font-bold tracking-wider">
-            <Clock className="w-3 h-3 text-brand-accent" />
+        <div className="hidden md:flex flex-col items-end text-[12px] border-l border-brand-border pl-3">
+          <div className="flex items-center gap-1.5 text-brand-text font-medium font-mono tabular-nums">
+            <Clock className="w-3 h-3 text-brand-muted" />
             <span>{timeStr || '--:--:--'}</span>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-brand-muted">
+          <div className="flex items-center gap-1 text-[11px] text-brand-muted">
             <Calendar className="w-2.5 h-2.5" />
             <span>{today}</span>
           </div>
         </div>
 
-        {/* Operator Profile Tag */}
-        <div className="flex items-center gap-2 pl-2 border-l border-brand-border/60">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-surface-2 to-slate-800 border border-brand-border flex items-center justify-center text-brand-text text-xs font-mono font-bold shadow-inner">
-            <User className="w-4 h-4 text-brand-accent" />
+        {/* User Profile */}
+        <div className="flex items-center gap-2 pl-2 border-l border-brand-border">
+          <div className="w-7 h-7 rounded-full bg-brand-surface-raised border border-brand-border flex items-center justify-center text-brand-secondary">
+            <User className="w-3.5 h-3.5" />
           </div>
         </div>
       </div>
