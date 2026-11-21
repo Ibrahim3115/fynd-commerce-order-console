@@ -39,7 +39,7 @@ The result is frustrated customers, lost revenue, and burnt-out operations staff
 | 5 | Transaction-safe concurrent order processing | ✅ |
 | 6 | Full-text order search and status filtering | ✅ |
 | 7 | Dashboard with live stats & low-stock alerts | ✅ |
-| 8 | Automated pytest test suite (12 tests) | ✅ |
+| 8 | Automated pytest test suite (13 tests including restart persistence) | ✅ |
 
 ---
 
@@ -374,7 +374,7 @@ cd backend
 python -m pytest tests/ -v
 ```
 
-Expected output: **12 passed** covering order creation, state machine transitions, cancellation, stock restoration, and concurrent safety.
+Expected output: **13 passed** covering order creation, multi-item atomic validation, state machine transitions, cancellation, stock restoration, and database restart persistence.
 
 ---
 

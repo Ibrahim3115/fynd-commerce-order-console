@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import HTTPException
@@ -8,6 +8,10 @@ from sqlalchemy import select, func, update
 from sqlalchemy.orm import Session
 
 from app import models, schemas
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 # ─── VALID TRANSITIONS ───────────────────────────────────────────────────────
@@ -35,7 +39,7 @@ def get_product(db: Session, product_id: int) -> Optional[models.Product]:
 # ─── Orders ──────────────────────────────────────────────────────────────────
 
 def _generate_order_reference() -> str:
-    date_part = datetime.utcnow().strftime("%Y%m%d")
+    date_part = utc_now().strftime("%Y%m%d")
     random_part = "".join(random.choices(string.digits, k=6))
     return f"ORD-{date_part}-{random_part}"
 
@@ -62,48 +66,50 @@ def create_order(db: Session, order_in: schemas.OrderCreate) -> models.Order:
 
     # ── All validations passed → one transaction ──────────────────────────
     try:
-        with db.begin():
-            total = sum(p.price * qty for p, qty in validated)
-            order = models.Order(
-                order_reference=_generate_order_reference(),
-                status="PLACED",
-                total_amount=total,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
-            )
-            db.add(order)
-            db.flush()  # get order.id
+        total = sum(p.price * qty for p, qty in validated)
+        order = models.Order(
+            order_reference=_generate_order_reference(),
+            status="PLACED",
+            total_amount=total,
+            created_at=utc_now(),
+            updated_at=utc_now(),
+        )
+        db.add(order)
+        db.flush()  # get order.id
 
-            for product, qty in validated:
-                db.add(
-                    models.OrderItem(
-                        order_id=order.id,
-                        product_id=product.id,
-                        product_name_snapshot=product.name,
-                        quantity=qty,
-                        unit_price=product.price,
-                        line_total=product.price * qty,
-                    )
-                )
-                # Atomic decrement
-                db.execute(
-                    update(models.Product)
-                    .where(models.Product.id == product.id)
-                    .values(stock_quantity=models.Product.stock_quantity - qty)
-                )
-
+        for product, qty in validated:
             db.add(
-                models.OrderStatusHistory(
+                models.OrderItem(
                     order_id=order.id,
-                    from_status=None,
-                    to_status="PLACED",
-                    changed_at=datetime.utcnow(),
-                    notes="Order created",
+                    product_id=product.id,
+                    product_name_snapshot=product.name,
+                    quantity=qty,
+                    unit_price=product.price,
+                    line_total=product.price * qty,
                 )
             )
+            # Atomic decrement
+            db.execute(
+                update(models.Product)
+                .where(models.Product.id == product.id)
+                .values(stock_quantity=models.Product.stock_quantity - qty)
+            )
+
+        db.add(
+            models.OrderStatusHistory(
+                order_id=order.id,
+                from_status=None,
+                to_status="PLACED",
+                changed_at=utc_now(),
+                notes="Order created",
+            )
+        )
+        db.commit()
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail="Failed to create order")
 
     db.refresh(order)
@@ -154,20 +160,22 @@ def update_order_status(
 
     old_status = order.status
     try:
-        with db.begin():
-            order.status = new_status
-            order.updated_at = datetime.utcnow()
-            db.add(
-                models.OrderStatusHistory(
-                    order_id=order.id,
-                    from_status=old_status,
-                    to_status=new_status,
-                    changed_at=datetime.utcnow(),
-                )
+        order.status = new_status
+        order.updated_at = utc_now()
+        db.add(
+            models.OrderStatusHistory(
+                order_id=order.id,
+                from_status=old_status,
+                to_status=new_status,
+                changed_at=utc_now(),
             )
+        )
+        db.commit()
     except HTTPException:
+        db.rollback()
         raise
     except Exception:
+        db.rollback()
         raise HTTPException(status_code=500, detail="Failed to update order status")
 
     db.refresh(order)
@@ -185,31 +193,33 @@ def cancel_order(db: Session, order: models.Order) -> models.Order:
 
     old_status = order.status
     try:
-        with db.begin():
-            order.status = "CANCELLED"
-            order.cancelled_at = datetime.utcnow()
-            order.updated_at = datetime.utcnow()
+        order.status = "CANCELLED"
+        order.cancelled_at = utc_now()
+        order.updated_at = utc_now()
 
-            # Restore stock for all items
-            for item in order.items:
-                db.execute(
-                    update(models.Product)
-                    .where(models.Product.id == item.product_id)
-                    .values(stock_quantity=models.Product.stock_quantity + item.quantity)
-                )
-
-            db.add(
-                models.OrderStatusHistory(
-                    order_id=order.id,
-                    from_status=old_status,
-                    to_status="CANCELLED",
-                    changed_at=datetime.utcnow(),
-                    notes="Order cancelled, stock restored",
-                )
+        # Restore stock for all items
+        for item in order.items:
+            db.execute(
+                update(models.Product)
+                .where(models.Product.id == item.product_id)
+                .values(stock_quantity=models.Product.stock_quantity + item.quantity)
             )
+
+        db.add(
+            models.OrderStatusHistory(
+                order_id=order.id,
+                from_status=old_status,
+                to_status="CANCELLED",
+                changed_at=utc_now(),
+                notes="Order cancelled, stock restored",
+            )
+        )
+        db.commit()
     except HTTPException:
+        db.rollback()
         raise
     except Exception:
+        db.rollback()
         raise HTTPException(status_code=500, detail="Failed to cancel order")
 
     db.refresh(order)
@@ -276,6 +286,6 @@ def seed_products(db: Session) -> None:
     count = db.execute(select(func.count(models.Product.id))).scalar()
     if count and count > 0:
         return
-    with db.begin():
-        for p in SEED_PRODUCTS:
-            db.add(models.Product(**p, created_at=datetime.utcnow()))
+    for p in SEED_PRODUCTS:
+        db.add(models.Product(**p, created_at=utc_now()))
+    db.commit()

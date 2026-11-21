@@ -204,3 +204,54 @@ def test_health_endpoint(client, db):
     assert resp.status_code == 200, resp.text
     data = resp.json()
     assert data.get("status") == "ok"
+
+
+# ─── TEST 13 — Database persistence across restart ────────────────────────────
+
+def test_database_persistence_across_restart(tmp_path):
+    import os
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from app.database import Base
+    from app.models import Product, Order
+    from app import crud, schemas
+
+    db_file = tmp_path / "persistent_test.db"
+    db_url = f"sqlite:///{db_file}"
+
+    # 1. First engine & session (simulate initial run)
+    engine1 = create_engine(db_url)
+    Session1 = sessionmaker(bind=engine1)
+    Base.metadata.create_all(bind=engine1)
+
+    with Session1() as db1:
+        p = Product(name="Persistent Item", sku="PERSIST-1", price=500.0, stock_quantity=10, category="Test")
+        db1.add(p)
+        db1.commit()
+        db1.refresh(p)
+        pid = p.id
+
+        # Place order for 4 items
+        order_in = schemas.OrderCreate(items=[schemas.OrderItemIn(product_id=pid, quantity=4)])
+        order = crud.create_order(db1, order_in)
+        order_ref = order.order_reference
+
+    engine1.dispose()
+
+    # 2. Second engine & session (simulate server restart reading same file)
+    assert os.path.exists(db_file)
+    engine2 = create_engine(db_url)
+    Session2 = sessionmaker(bind=engine2)
+
+    with Session2() as db2:
+        saved_order = crud.get_order_by_reference(db2, order_ref)
+        assert saved_order is not None
+        assert saved_order.status == "PLACED"
+        assert saved_order.total_amount == 2000.0
+
+        saved_product = crud.get_product(db2, pid)
+        assert saved_product is not None
+        assert saved_product.stock_quantity == 6  # 10 - 4 = 6
+        assert saved_product.name == "Persistent Item"
+
+    engine2.dispose()

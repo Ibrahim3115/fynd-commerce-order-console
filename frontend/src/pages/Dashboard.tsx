@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShoppingBag, Clock, Box, Truck, XCircle, Package,
+  ShoppingBag, Clock, Box, Truck, XCircle,
   TrendingUp, AlertTriangle, Activity,
 } from 'lucide-react';
 import { getDashboardStats } from '../api/dashboard';

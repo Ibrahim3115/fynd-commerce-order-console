@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     Column, Integer, String, Float, DateTime, ForeignKey, Index
 )
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 
 class Product(Base):
@@ -17,7 +21,7 @@ class Product(Base):
     price = Column(Float, nullable=False)
     stock_quantity = Column(Integer, nullable=False, default=0)
     category = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     order_items = relationship("OrderItem", back_populates="product")
 
@@ -29,8 +33,8 @@ class Order(Base):
     order_reference = Column(String, unique=True, nullable=False, index=True)
     status = Column(String, nullable=False, default="PLACED")
     total_amount = Column(Float, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
     cancelled_at = Column(DateTime, nullable=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -59,7 +63,7 @@ class OrderStatusHistory(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     from_status = Column(String, nullable=True)
     to_status = Column(String, nullable=False)
-    changed_at = Column(DateTime, default=datetime.utcnow)
+    changed_at = Column(DateTime, default=utc_now)
     notes = Column(String, nullable=True)
 
     order = relationship("Order", back_populates="status_history")
