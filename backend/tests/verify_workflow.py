@@ -30,8 +30,10 @@ def run_workflow_verification():
     print("Step 2: View inventory")
     products = client.get("/api/products").json()
     assert len(products) >= 6, "Expected at least 6 catalogue products"
-    p1 = products[0]
-    p2 = products[1]
+    available = [p for p in products if p["stock_quantity"] >= 3]
+    assert len(available) >= 2, "Expected at least 2 products with stock >= 3"
+    p1 = available[0]
+    p2 = available[1]
     initial_p1_stock = p1["stock_quantity"]
     initial_p2_stock = p2["stock_quantity"]
     print(f"  -> {p1['name']}: stock={initial_p1_stock}, {p2['name']}: stock={initial_p2_stock}")

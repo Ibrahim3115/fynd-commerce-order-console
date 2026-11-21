@@ -13,11 +13,11 @@ import {
 import { useSidebar } from '../context/SidebarContext';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', badge: null, end: true },
-  { to: '/orders', icon: ShoppingCart, label: 'Orders', badge: null, end: false },
-  { to: '/create-order', icon: PlusCircle, label: 'Create Order', badge: null, end: false },
-  { to: '/inventory', icon: Boxes, label: 'Inventory', badge: null, end: false },
-  { to: '/settings', icon: Sliders, label: 'Settings', badge: null, end: false },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/orders', icon: ShoppingCart, label: 'Orders', end: false },
+  { to: '/create-order', icon: PlusCircle, label: 'Create Order', end: false },
+  { to: '/inventory', icon: Boxes, label: 'Inventory', end: false },
+  { to: '/settings', icon: Sliders, label: 'Settings', end: false },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -26,23 +26,23 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className={`fixed left-0 top-0 h-full bg-brand-surface border-r border-brand-border flex flex-col z-30 transition-all duration-200 ease-in-out ${
-        isCollapsed ? 'w-[72px]' : 'w-[240px]'
+        isCollapsed ? 'w-[68px]' : 'w-[230px]'
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center px-4 border-b border-brand-border justify-between">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-brand-surface-raised border border-brand-border flex items-center justify-center flex-shrink-0 text-brand-accent">
-            <Layers className="w-4 h-4" />
+      <div className="h-14 flex items-center px-4 border-b border-brand-border justify-between">
+        <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="w-7 h-7 rounded-md bg-brand-accent text-white flex items-center justify-center flex-shrink-0 shadow-subtle">
+            <Layers className="w-4 h-4 stroke-[2.2]" />
           </div>
           {!isCollapsed && (
             <div className="min-w-0 animate-fade-in">
-              <div className="flex items-center gap-1.5">
-                <span className="text-brand-text font-semibold text-[15px] tracking-tight">FYND OPS</span>
-              </div>
-              <p className="text-[12px] text-brand-secondary font-normal truncate">
+              <span className="text-brand-text font-semibold text-[14px] tracking-tight block leading-tight">
+                FYND OPS
+              </span>
+              <span className="text-[11px] text-brand-secondary font-normal block leading-tight">
                 Commerce Console
-              </p>
+              </span>
             </div>
           )}
         </div>
@@ -50,7 +50,7 @@ export const Sidebar: React.FC = () => {
         {!isCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="text-brand-muted hover:text-brand-text p-1.5 rounded-md hover:bg-brand-surface-raised transition-colors"
+            className="text-brand-muted hover:text-brand-text p-1 rounded-md hover:bg-brand-surface-subtle transition-colors"
             title="Collapse sidebar"
             aria-label="Collapse sidebar"
           >
@@ -60,15 +60,15 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation Section */}
-      <div className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <div className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
         {!isCollapsed && (
-          <p className="px-3 pt-1 pb-2 text-[11px] font-medium text-brand-muted">
+          <p className="px-3 pt-1 pb-1.5 text-[11px] font-medium text-brand-muted tracking-normal">
             Operations
           </p>
         )}
 
         <nav className="space-y-0.5">
-          {navItems.map(({ to, icon: Icon, label, badge, end }) => (
+          {navItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -76,8 +76,8 @@ export const Sidebar: React.FC = () => {
               className={({ isActive }) =>
                 `group relative flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-brand-surface-raised text-brand-text border border-brand-border'
-                    : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-raised/50 border border-transparent'
+                    ? 'bg-brand-accent-subtle text-brand-accent'
+                    : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-subtle'
                 } ${isCollapsed ? 'justify-center px-0' : ''}`
               }
             >
@@ -89,17 +89,10 @@ export const Sidebar: React.FC = () => {
                     }`}
                   />
                   {!isCollapsed ? (
-                    <div className="flex-1 flex items-center justify-between min-w-0">
-                      <span className="truncate">{label}</span>
-                      {badge && (
-                        <span className="text-[11px] px-1.5 py-0.5 rounded font-normal bg-brand-surface-raised text-brand-muted border border-brand-border">
-                          {badge}
-                        </span>
-                      )}
-                    </div>
+                    <span className="truncate">{label}</span>
                   ) : (
                     /* Floating tooltip in collapsed mode */
-                    <div className="absolute left-full ml-3 px-2 py-1 bg-brand-surface border border-brand-border rounded-md text-[12px] font-medium text-brand-text whitespace-nowrap shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
+                    <div className="absolute left-full ml-2.5 px-2.5 py-1 bg-brand-surface border border-brand-border rounded-md text-[12px] font-medium text-brand-text whitespace-nowrap shadow-card opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50">
                       {label}
                     </div>
                   )}
@@ -116,7 +109,7 @@ export const Sidebar: React.FC = () => {
           <div className="flex flex-col items-center gap-2">
             <button
               onClick={toggleSidebar}
-              className="text-brand-muted hover:text-brand-text p-1.5 rounded-md hover:bg-brand-surface-raised transition-colors"
+              className="text-brand-muted hover:text-brand-text p-1 rounded-md hover:bg-brand-surface-subtle transition-colors"
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
@@ -125,18 +118,12 @@ export const Sidebar: React.FC = () => {
             <span className="w-2 h-2 rounded-full bg-emerald-500" title="System Operational" />
           </div>
         ) : (
-          <div className="space-y-1.5 px-1">
-            <div className="flex items-center justify-between text-[12px] text-brand-secondary">
-              <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                System
-              </span>
-              <span className="text-emerald-400 font-medium text-[11px]">Operational</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-brand-muted pt-1 border-t border-brand-border/60">
-              <span>FYND OPS Console</span>
-              <span>v2.1</span>
-            </div>
+          <div className="flex items-center justify-between px-1 text-[12px]">
+            <span className="flex items-center gap-2 text-brand-secondary font-normal">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Operational
+            </span>
+            <span className="text-[11px] text-brand-muted font-normal">v3.0</span>
           </div>
         )}
       </div>

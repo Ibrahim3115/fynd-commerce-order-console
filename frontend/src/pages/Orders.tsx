@@ -20,8 +20,8 @@ const STATUS_TRANSITIONS: Record<string, string | null> = {
 };
 
 const NEXT_LABEL: Record<string, string> = {
-  PLACED: 'Mark as Packed',
-  PACKED: 'Dispatch & Ship',
+  PLACED: 'Pack Order',
+  PACKED: 'Ship Order',
 };
 
 const NEXT_SHORT: Record<string, string> = {
@@ -56,7 +56,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
   const copyReference = () => {
     navigator.clipboard.writeText(currentOrder.order_reference);
     setCopied(true);
-    notify(`Copied ${currentOrder.order_reference} to clipboard`, 'success');
+    notify(`Copied ${currentOrder.order_reference}`, 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -67,7 +67,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
     try {
       const updated = await updateOrderStatus(currentOrder.id, next);
       setCurrentOrder(updated);
-      notify(`Order ${currentOrder.order_reference} advanced to ${next}`, 'success');
+      notify(`Order ${currentOrder.order_reference} moved to ${next}`, 'success');
       onMutation();
     } catch (e: any) {
       notify(e.response?.data?.detail || 'Status transition failed', 'error');
@@ -91,7 +91,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
     }
   };
 
-  // Pipeline stages
+  // Pipeline stages calculation
   const isCancelled = currentOrder.status === 'CANCELLED';
   const steps = [
     { key: 'PLACED', label: 'Placed', icon: Package },
@@ -109,7 +109,6 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
     return 'upcoming';
   };
 
-  // Items summary
   const validItems = (currentOrder.items || []).filter(
     (item) => item && (item.product_name || item.product_name_snapshot || (item.product_id && item.quantity > 0))
   );
@@ -120,29 +119,29 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
       <div className="fixed inset-0 z-50 flex justify-end">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-black/25 backdrop-blur-[1px] transition-opacity"
           onClick={onClose}
         />
 
         {/* Slide-in Drawer */}
-        <div className="relative w-full max-w-xl bg-brand-surface border-l border-brand-border h-full overflow-y-auto shadow-2xl flex flex-col z-50 animate-slide-in">
+        <div className="relative w-full max-w-xl bg-white border-l border-brand-border h-full overflow-y-auto shadow-drawer flex flex-col z-50 animate-slide-in">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border sticky top-0 bg-brand-surface/95 backdrop-blur-sm z-20">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border sticky top-0 bg-white/95 backdrop-blur-sm z-20">
             <div>
               <p className="text-[12px] font-medium text-brand-secondary">
                 Order Details
               </p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="font-mono text-[16px] font-semibold text-brand-accent">
+                <span className="font-mono text-[16px] font-semibold text-brand-text">
                   {currentOrder.order_reference}
                 </span>
                 <button
                   onClick={copyReference}
                   title="Copy reference"
                   aria-label="Copy reference"
-                  className="p-1 rounded text-brand-muted hover:text-brand-text hover:bg-brand-surface-raised transition-colors"
+                  className="p-1 rounded text-brand-muted hover:text-brand-text hover:bg-brand-surface-subtle transition-colors"
                 >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
@@ -152,7 +151,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
               <button
                 onClick={onClose}
                 aria-label="Close drawer"
-                className="p-1.5 rounded-md text-brand-muted hover:text-brand-text hover:bg-brand-surface-raised transition-colors"
+                className="p-1.5 rounded-md text-brand-muted hover:text-brand-text hover:bg-brand-surface-subtle transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -161,16 +160,16 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
 
           <div className="flex-1 p-6 space-y-6">
             {/* Fulfilment Pipeline Stepper */}
-            <div className="p-4 rounded-xl bg-brand-surface-raised/40 border border-brand-border">
+            <div className="p-4 rounded-lg bg-brand-surface-subtle border border-brand-border">
               <p className="text-[12px] font-medium text-brand-secondary mb-3">
                 Fulfilment Stage
               </p>
               {isCancelled ? (
-                <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[13px]">
-                  <AlertOctagon className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <div className="flex items-center gap-2.5 p-3 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[13px]">
+                  <AlertOctagon className="w-4 h-4 text-rose-600 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-red-300">Order Cancelled</p>
-                    <p className="text-[12px] text-red-400/80">
+                    <p className="font-medium text-rose-900">Order Cancelled</p>
+                    <p className="text-[12px] text-rose-700">
                       Dispatched allocations reversed. Stock automatically restored to inventory.
                     </p>
                   </div>
@@ -183,20 +182,20 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                     return (
                       <div
                         key={st.key}
-                        className={`flex flex-col items-center p-2.5 rounded-lg border text-center transition-colors ${
+                        className={`flex flex-col items-center p-2.5 rounded-md border text-center transition-colors ${
                           state === 'completed'
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                             : state === 'current'
-                            ? 'bg-brand-accent/10 border-brand-accent/30 text-brand-accent'
-                            : 'bg-brand-bg/40 border-brand-border text-brand-muted'
+                            ? 'bg-brand-accent-subtle border-brand-accent text-brand-accent'
+                            : 'bg-white border-brand-border text-brand-muted'
                         }`}
                       >
                         <StepIcon className="w-4 h-4 mb-1" />
                         <span className="text-[12px] font-medium">
                           {idx + 1}. {st.label}
                         </span>
-                        <span className="text-[10px] text-brand-muted mt-0.5">
-                          {state === 'completed' ? 'Completed' : state === 'current' ? 'In progress' : 'Pending'}
+                        <span className="text-[11px] text-brand-secondary mt-0.5">
+                          {state === 'completed' ? 'Completed' : state === 'current' ? 'Active' : 'Pending'}
                         </span>
                       </div>
                     );
@@ -207,8 +206,8 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
 
             {/* Timestamps */}
             <div className="grid grid-cols-2 gap-3 text-[13px]">
-              <div className="p-3 bg-brand-surface-raised/40 rounded-lg border border-brand-border">
-                <span className="text-[11px] text-brand-muted font-medium flex items-center gap-1 mb-1">
+              <div className="p-3 bg-white rounded-lg border border-brand-border">
+                <span className="text-[11px] text-brand-secondary font-medium flex items-center gap-1 mb-1">
                   <Clock className="w-3 h-3 text-brand-muted" /> Placed At
                 </span>
                 <p className="text-brand-text font-normal">
@@ -219,8 +218,8 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                 </p>
               </div>
 
-              <div className="p-3 bg-brand-surface-raised/40 rounded-lg border border-brand-border">
-                <span className="text-[11px] text-brand-muted font-medium flex items-center gap-1 mb-1">
+              <div className="p-3 bg-white rounded-lg border border-brand-border">
+                <span className="text-[11px] text-brand-secondary font-medium flex items-center gap-1 mb-1">
                   <RefreshCw className="w-3 h-3 text-brand-muted" /> Last Updated
                 </span>
                 <p className="text-brand-text font-normal">
@@ -232,11 +231,11 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
               </div>
 
               {currentOrder.cancelled_at && (
-                <div className="col-span-2 p-3 bg-red-500/10 rounded-lg border border-red-500/20 text-[12px]">
-                  <span className="text-[11px] text-red-400 font-medium mb-0.5 block">
+                <div className="col-span-2 p-3 bg-rose-50 rounded-lg border border-rose-200 text-[12px]">
+                  <span className="text-[11px] text-rose-700 font-medium mb-0.5 block">
                     Cancellation Timestamp
                   </span>
-                  <p className="text-red-300 font-normal">
+                  <p className="text-rose-900 font-normal">
                     {new Date(currentOrder.cancelled_at).toLocaleString('en-IN', {
                       dateStyle: 'medium',
                       timeStyle: 'medium',
@@ -248,7 +247,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
 
             {/* Line Items Table */}
             <div>
-              <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center justify-between mb-2">
                 <h4 className="text-[14px] font-medium text-brand-text">
                   Order Items
                 </h4>
@@ -257,31 +256,31 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                 </span>
               </div>
 
-              <div className="border border-brand-border rounded-lg overflow-hidden bg-brand-bg/40">
+              <div className="border border-brand-border rounded-lg overflow-hidden bg-white">
                 <table className="w-full text-[13px] border-collapse">
                   <thead>
-                    <tr className="border-b border-brand-border bg-brand-surface-raised/50 text-[11px] font-medium text-brand-muted">
+                    <tr className="border-b border-brand-border bg-brand-surface-subtle text-[12px] font-medium text-brand-secondary">
                       <th className="text-left px-3.5 py-2 font-medium">Product / SKU</th>
                       <th className="text-right px-3.5 py-2 font-medium w-16">Qty</th>
                       <th className="text-right px-3.5 py-2 font-medium w-24">Unit Price</th>
                       <th className="text-right px-3.5 py-2 font-medium w-24">Line Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-brand-border/40">
+                  <tbody className="divide-y divide-brand-border">
                     {validItems.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-4 py-6 text-center text-brand-muted text-[13px]">
+                        <td colSpan={4} className="px-4 py-6 text-center text-brand-secondary text-[13px]">
                           No line items found for this order.
                         </td>
                       </tr>
                     ) : (
                       validItems.map((item) => (
-                        <tr key={item.id || item.product_id} className="hover:bg-brand-surface-raised/30 transition-colors">
+                        <tr key={item.id || item.product_id} className="hover:bg-brand-surface-subtle/50 transition-colors">
                           <td className="px-3.5 py-2.5 align-middle">
                             <p className="font-medium text-brand-text">
                               {item.product_name || item.product_name_snapshot}
                             </p>
-                            <p className="text-[11px] font-mono text-brand-muted mt-0.5">
+                            <p className="text-[11px] font-mono text-brand-secondary mt-0.5">
                               ID: #{item.product_id}
                             </p>
                           </td>
@@ -291,7 +290,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                           <td className="px-3.5 py-2.5 text-right font-mono text-brand-secondary tabular-nums align-middle">
                             ₹{item.unit_price.toLocaleString('en-IN')}
                           </td>
-                          <td className="px-3.5 py-2.5 text-right font-mono text-brand-text tabular-nums align-middle">
+                          <td className="px-3.5 py-2.5 text-right font-mono text-brand-text tabular-nums align-middle font-medium">
                             ₹{item.line_total.toLocaleString('en-IN')}
                           </td>
                         </tr>
@@ -299,11 +298,11 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                     )}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-brand-surface-raised/60 border-t border-brand-border">
+                    <tr className="bg-brand-surface-subtle border-t border-brand-border">
                       <td colSpan={3} className="px-3.5 py-2.5 text-right text-[12px] text-brand-secondary font-medium align-middle">
                         Grand Total
                       </td>
-                      <td className="px-3.5 py-2.5 text-right font-mono text-brand-accent font-semibold text-[14px] tabular-nums align-middle">
+                      <td className="px-3.5 py-2.5 text-right font-mono text-brand-text font-semibold text-[14px] tabular-nums align-middle">
                         ₹{currentOrder.total_amount.toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -322,22 +321,22 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                   {currentOrder.status_history.map((h, i) => (
                     <div key={h.id || i} className="relative">
                       <div
-                        className={`absolute -left-5 top-1.5 w-2 h-2 rounded-full ${
-                          i === 0 ? 'bg-brand-accent' : 'bg-brand-border'
+                        className={`absolute -left-5 top-1.5 w-2 h-2 rounded-full border-2 border-white ${
+                          i === 0 ? 'bg-brand-accent' : 'bg-gray-300'
                         }`}
                       />
-                      <div className="bg-brand-surface-raised/30 border border-brand-border rounded-lg p-2.5 text-[12px]">
+                      <div className="bg-brand-surface-subtle border border-brand-border rounded-lg p-2.5 text-[12px]">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-medium text-brand-text flex items-center gap-1">
                             {h.from_status ? (
                               <>
-                                <span className="font-mono text-brand-muted">{h.from_status}</span>
+                                <span className="font-mono text-brand-secondary">{h.from_status}</span>
                                 <ChevronRight className="w-3 h-3 text-brand-muted" />
                               </>
                             ) : null}
-                            <span className="font-mono text-brand-accent">{h.to_status}</span>
+                            <span className="font-mono text-brand-text">{h.to_status}</span>
                           </span>
-                          <span className="text-[11px] font-mono text-brand-muted">
+                          <span className="text-[11px] font-mono text-brand-secondary">
                             {new Date(h.changed_at).toLocaleTimeString('en-IN', {
                               hour: '2-digit',
                               minute: '2-digit',
@@ -359,12 +358,12 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
           </div>
 
           {/* Action Footer */}
-          <div className="p-4 px-6 border-t border-brand-border bg-brand-surface sticky bottom-0 z-20 flex gap-3">
+          <div className="p-4 px-6 border-t border-brand-border bg-white sticky bottom-0 z-20 flex gap-3">
             {STATUS_TRANSITIONS[currentOrder.status] && (
               <button
                 onClick={advance}
                 disabled={loading}
-                className="flex-1 py-2 px-4 bg-brand-accent hover:bg-brand-accent-hover text-brand-bg font-medium text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 py-2 px-4 bg-brand-accent hover:bg-brand-accent-hover text-white font-medium text-[13px] rounded-md transition-colors shadow-subtle flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {loading ? (
                   <LoadingSpinner size="sm" />
@@ -381,7 +380,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
               <button
                 onClick={() => setConfirmCancel(true)}
                 disabled={loading}
-                className="py-2 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-medium text-[13px] rounded-lg transition-colors disabled:opacity-50"
+                className="py-2 px-4 bg-white hover:bg-rose-50 border border-brand-border hover:border-rose-300 text-rose-600 font-medium text-[13px] rounded-md transition-colors disabled:opacity-50 shadow-subtle"
               >
                 Cancel Order
               </button>
@@ -439,7 +438,7 @@ export const Orders: React.FC = () => {
     setActionLoading(order.id);
     try {
       await updateOrderStatus(order.id, next);
-      notify(`${order.order_reference} transitioned to ${next}`, 'success');
+      notify(`${order.order_reference} moved to ${next}`, 'success');
       fetchOrders();
     } catch (err: any) {
       notify(err.response?.data?.detail || 'Failed to update order state', 'error');
@@ -454,7 +453,7 @@ export const Orders: React.FC = () => {
 
   // Status tabs
   const statusTabs = [
-    { key: '', label: 'All Orders' },
+    { key: '', label: 'All' },
     { key: 'PLACED', label: 'Placed' },
     { key: 'PACKED', label: 'Packed' },
     { key: 'SHIPPED', label: 'Shipped' },
@@ -464,8 +463,8 @@ export const Orders: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Top Filter & Search Controls */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-surface p-3 rounded-xl border border-brand-border">
-        {/* Status Filter Tabs */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-surface p-3 rounded-lg border border-brand-border shadow-subtle">
+        {/* Status Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
           {statusTabs.map((tab) => {
             const isActive = statusFilter === tab.key;
@@ -473,10 +472,10 @@ export const Orders: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setStatusFilter(tab.key)}
-                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors whitespace-nowrap ${
                   isActive
-                    ? 'bg-brand-surface-raised text-brand-text border border-brand-border shadow-subtle'
-                    : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-raised/50 border border-transparent'
+                    ? 'bg-brand-surface-subtle text-brand-text border border-brand-border shadow-subtle'
+                    : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-subtle/60 border border-transparent'
                 }`}
               >
                 {tab.label}
@@ -491,10 +490,10 @@ export const Orders: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-muted" />
             <input
               type="text"
-              placeholder="Search reference..."
+              placeholder="Search by order reference..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 bg-brand-bg border border-brand-border rounded-lg text-[13px] text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-accent transition-colors"
+              className="w-full pl-8 pr-7 py-1.5 bg-white border border-brand-border rounded-md text-[13px] text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-accent transition-colors shadow-subtle"
             />
             {search && (
               <button
@@ -510,7 +509,7 @@ export const Orders: React.FC = () => {
             onClick={fetchOrders}
             title="Refresh orders"
             aria-label="Refresh orders"
-            className="p-2 bg-brand-surface-raised hover:bg-brand-border text-brand-secondary hover:text-brand-text rounded-lg border border-brand-border transition-colors"
+            className="p-2 bg-brand-surface hover:bg-brand-surface-subtle text-brand-secondary hover:text-brand-text rounded-md border border-brand-border transition-colors shadow-subtle"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -518,7 +517,7 @@ export const Orders: React.FC = () => {
       </div>
 
       {/* Orders Data Grid */}
-      <div className="bg-brand-surface border border-brand-border rounded-xl overflow-hidden shadow-subtle">
+      <div className="bg-brand-surface border border-brand-border rounded-lg overflow-hidden shadow-subtle">
         {loading ? (
           <div className="py-24">
             <LoadingSpinner size="lg" label="Loading orders..." />
@@ -526,13 +525,13 @@ export const Orders: React.FC = () => {
         ) : orders.length === 0 ? (
           <EmptyState
             title="No orders found"
-            description="Try modifying search keywords or clearing status filters."
+            description="Try modifying search keywords or switching status filters."
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-brand-border bg-brand-surface-raised/40 text-[11px] font-medium text-brand-muted">
+                <tr className="border-b border-brand-border bg-brand-surface-subtle text-[12px] font-medium text-brand-secondary">
                   <th className="px-5 py-2.5">Order</th>
                   <th className="px-5 py-2.5">Placed At</th>
                   <th className="text-right px-5 py-2.5">Items</th>
@@ -541,7 +540,7 @@ export const Orders: React.FC = () => {
                   <th className="text-right px-5 py-2.5">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-border/60 text-[13px]">
+              <tbody className="divide-y divide-brand-border text-[13px]">
                 {orders.map((order) => {
                   const validOrderItems = (order.items || []).filter(
                     (item) => item && (item.product_name || item.product_name_snapshot || (item.product_id && item.quantity > 0))
@@ -555,9 +554,9 @@ export const Orders: React.FC = () => {
                     <tr
                       key={order.id}
                       onClick={() => setSelectedOrder(order)}
-                      className="hover:bg-brand-surface-raised/40 transition-colors cursor-pointer group"
+                      className="hover:bg-brand-surface-subtle transition-colors cursor-pointer group"
                     >
-                      <td className="px-5 py-3 font-mono text-[12px] text-brand-accent font-medium align-middle">
+                      <td className="px-5 py-3 font-mono text-[13px] text-brand-text font-medium align-middle group-hover:text-brand-accent transition-colors">
                         {order.order_reference}
                       </td>
                       <td className="px-5 py-3 text-brand-secondary text-[12px] align-middle">
@@ -575,11 +574,11 @@ export const Orders: React.FC = () => {
                       </td>
                       <td className="px-5 py-3 text-right font-mono text-brand-text tabular-nums text-[12px] align-middle">
                         {itemCount}{' '}
-                        <span className="font-sans text-[11px] text-brand-muted">
+                        <span className="font-sans text-[11px] text-brand-secondary">
                           ({validOrderItems.length} SKUs)
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right font-mono text-brand-text tabular-nums text-[12px] font-medium align-middle">
+                      <td className="px-5 py-3 text-right font-mono text-brand-text tabular-nums text-[13px] font-medium align-middle">
                         ₹{order.total_amount.toLocaleString('en-IN')}
                       </td>
                       <td className="px-5 py-3 text-center align-middle">
@@ -589,15 +588,15 @@ export const Orders: React.FC = () => {
                         <div className="flex items-center gap-1.5 justify-end">
                           <button
                             onClick={() => setSelectedOrder(order)}
-                            className="px-2.5 py-1 rounded text-[12px] font-medium bg-brand-surface-raised hover:bg-brand-border text-brand-secondary hover:text-brand-text border border-brand-border transition-colors"
+                            className="px-2.5 py-1 rounded text-[12px] font-medium bg-brand-surface hover:bg-brand-surface-subtle text-brand-secondary hover:text-brand-text border border-brand-border transition-colors shadow-subtle"
                           >
-                            Inspect
+                            View
                           </button>
                           {STATUS_TRANSITIONS[order.status] && (
                             <button
                               disabled={actionLoading === order.id}
                               onClick={(e) => handleAdvance(order, e)}
-                              className="px-2.5 py-1 rounded text-[12px] font-medium bg-brand-accent/10 hover:bg-brand-accent/20 text-brand-accent border border-brand-accent/20 transition-colors disabled:opacity-50 flex items-center gap-1"
+                              className="px-2.5 py-1 rounded text-[12px] font-medium bg-brand-accent-subtle hover:bg-amber-100 text-brand-accent border border-brand-accent-border transition-colors disabled:opacity-50 flex items-center gap-1 shadow-subtle"
                             >
                               {actionLoading === order.id ? (
                                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -620,11 +619,11 @@ export const Orders: React.FC = () => {
         )}
 
         {/* Footer Bar */}
-        <div className="px-5 py-2.5 bg-brand-surface border-t border-brand-border flex items-center justify-between text-[12px] text-brand-secondary">
+        <div className="px-5 py-2.5 bg-brand-surface-subtle border-t border-brand-border flex items-center justify-between text-[12px] text-brand-secondary">
           <span>{orders.length} orders total</span>
-          <span className="flex items-center gap-1.5 text-brand-muted text-[11px]">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            ACID transaction isolation guaranteed
+          <span className="flex items-center gap-1.5 text-brand-secondary text-[11px]">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            Stock reserved on placement
           </span>
         </div>
       </div>

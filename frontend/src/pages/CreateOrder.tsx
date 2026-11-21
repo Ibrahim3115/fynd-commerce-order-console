@@ -157,33 +157,31 @@ export const CreateOrder: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-brand-border">
-        <div>
-          <h2 className="text-[26px] font-semibold text-brand-text tracking-tight flex items-center gap-2.5">
-            <PackageCheck className="w-5 h-5 text-brand-accent" />
-            Create Order
-          </h2>
-          <p className="text-[13px] text-brand-secondary mt-0.5">
-            Select catalogued products, configure line quantities and submit orders
-          </p>
-        </div>
+      <div>
+        <h2 className="text-[22px] font-semibold text-brand-text tracking-tight flex items-center gap-2">
+          <PackageCheck className="w-5 h-5 text-brand-accent" />
+          Create Order
+        </h2>
+        <p className="text-[13px] text-brand-secondary mt-0.5">
+          Select products from inventory and create a customer order
+        </p>
       </div>
 
       {/* Success Notification Banner */}
       {createdOrderRef && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in shadow-subtle">
+        <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in shadow-subtle">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-400">
+            <div className="p-1.5 rounded-md bg-emerald-100 text-emerald-700">
               <CheckCircle className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[13px] font-medium text-emerald-400">
+              <p className="text-[13px] font-medium text-emerald-900">
                 Order Created Successfully
               </p>
               <p className="text-[13px] font-mono text-brand-text mt-0.5">
-                Reference: <span className="text-brand-accent font-semibold">{createdOrderRef}</span>
+                Reference: <span className="font-semibold text-brand-accent">{createdOrderRef}</span>
               </p>
-              <p className="text-[12px] text-brand-secondary mt-0.5">
+              <p className="text-[12px] text-emerald-700 mt-0.5">
                 Stock has been reserved. Order status initialized to Placed.
               </p>
             </div>
@@ -191,13 +189,13 @@ export const CreateOrder: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCreatedOrderRef(null)}
-              className="px-3 py-1.5 text-[13px] text-brand-secondary hover:text-brand-text transition-colors"
+              className="px-3 py-1.5 text-[13px] text-emerald-700 hover:text-emerald-900 transition-colors"
             >
               Dismiss
             </button>
             <button
               onClick={() => navigate('/orders')}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[13px] font-medium rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-[13px] font-medium rounded-md transition-colors flex items-center gap-1.5 shadow-subtle"
             >
               <span>View in orders</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -210,7 +208,7 @@ export const CreateOrder: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Product Catalogue (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-brand-surface border border-brand-border rounded-xl p-5 shadow-subtle">
+          <div className="bg-brand-surface border border-brand-border rounded-lg p-5 shadow-subtle">
             {/* Filter & Search Bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between mb-4">
               <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
@@ -218,10 +216,10 @@ export const CreateOrder: React.FC = () => {
                   <button
                     key={c}
                     onClick={() => setCategoryFilter(c)}
-                    className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors whitespace-nowrap ${
+                    className={`px-2.5 py-1 rounded-md text-[12px] font-medium transition-colors whitespace-nowrap ${
                       categoryFilter === c
-                        ? 'bg-brand-surface-raised text-brand-text border border-brand-border shadow-subtle'
-                        : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-raised/40 border border-transparent'
+                        ? 'bg-brand-surface-subtle text-brand-text border border-brand-border shadow-subtle'
+                        : 'text-brand-secondary hover:text-brand-text hover:bg-brand-surface-subtle/60 border border-transparent'
                     }`}
                   >
                     {c === 'ALL' ? 'All' : c}
@@ -236,7 +234,7 @@ export const CreateOrder: React.FC = () => {
                   placeholder="Filter catalogue..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-8 pr-7 py-1.5 bg-brand-bg border border-brand-border rounded-lg text-[13px] text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-accent transition-colors"
+                  className="w-full pl-8 pr-7 py-1.5 bg-white border border-brand-border rounded-md text-[13px] text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-accent transition-colors shadow-subtle"
                 />
                 {search && (
                   <button
@@ -261,45 +259,45 @@ export const CreateOrder: React.FC = () => {
                 return (
                   <div
                     key={p.id}
-                    className={`bg-brand-bg border rounded-xl p-3.5 flex flex-col justify-between transition-colors ${
+                    className={`bg-white border rounded-lg p-3.5 flex flex-col justify-between transition-colors shadow-subtle ${
                       isOutOfStock
-                        ? 'border-brand-border/60 opacity-60'
+                        ? 'border-gray-200 opacity-60'
                         : cartQty > 0
-                        ? 'border-brand-accent/40 bg-brand-surface-raised/20'
-                        : 'border-brand-border hover:border-brand-border/80'
+                        ? 'border-amber-300 bg-amber-50/20'
+                        : 'border-brand-border hover:border-gray-300'
                     }`}
                   >
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <span className="font-mono text-[11px] font-medium text-brand-accent">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <span className="font-mono text-[11px] font-medium text-brand-secondary">
                           {p.sku}
                         </span>
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-brand-surface-raised text-brand-muted border border-brand-border font-normal">
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-brand-surface-subtle text-brand-secondary border border-brand-border font-normal">
                           {p.category}
                         </span>
                       </div>
                       <h4 className="font-medium text-[14px] text-brand-text leading-snug">{p.name}</h4>
-                      <p className="text-[12px] text-brand-secondary line-clamp-2 mt-1">{p.description}</p>
+                      <p className="text-[12px] text-brand-secondary line-clamp-2 mt-0.5">{p.description}</p>
                     </div>
 
                     <div className="pt-3 mt-3 border-t border-brand-border">
-                      <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="text-[14px] font-medium font-mono text-brand-text tabular-nums">
                           ₹{p.price.toLocaleString('en-IN')}
                         </span>
                         <div>
                           {isOutOfStock ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded">
                               <AlertCircle className="w-3 h-3" />
                               Out of stock
                             </span>
                           ) : isLowStock ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
                               <AlertTriangle className="w-3 h-3" />
                               Low: {p.stock_quantity} left
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
                               Stock: {p.stock_quantity}
                             </span>
                           )}
@@ -309,12 +307,12 @@ export const CreateOrder: React.FC = () => {
                       <button
                         onClick={() => addToCart(p)}
                         disabled={isOutOfStock || isMaxedOut}
-                        className={`w-full py-1.5 px-3 rounded-lg text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                        className={`w-full py-1.5 px-3 rounded-md text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors shadow-subtle ${
                           isOutOfStock
-                            ? 'bg-brand-surface-raised text-brand-muted cursor-not-allowed border border-brand-border'
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
                             : isMaxedOut
-                            ? 'bg-brand-surface-raised text-brand-muted cursor-not-allowed border border-brand-border'
-                            : 'bg-brand-accent hover:bg-brand-accent-hover text-brand-bg'
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                            : 'bg-brand-accent hover:bg-brand-accent-hover text-white'
                         }`}
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -334,20 +332,20 @@ export const CreateOrder: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Sticky Order Manifest Summary (5 cols) */}
+        {/* Right: Order Summary (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-brand-surface border border-brand-border rounded-xl p-5 sticky top-20 shadow-subtle">
-            <div className="flex items-center justify-between pb-3.5 border-b border-brand-border">
+          <div className="bg-brand-surface border border-brand-border rounded-lg p-5 sticky top-20 shadow-subtle">
+            <div className="flex items-center justify-between pb-3 border-b border-brand-border">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-brand-accent" />
                 <h3 className="font-medium text-[14px] text-brand-text">
-                  Order Manifest
+                  Order Summary
                 </h3>
               </div>
               {cart.length > 0 && (
                 <button
                   onClick={clearCart}
-                  className="text-[12px] text-brand-muted hover:text-red-400 transition-colors"
+                  className="text-[12px] text-brand-secondary hover:text-rose-600 transition-colors"
                 >
                   Clear all
                 </button>
@@ -355,19 +353,19 @@ export const CreateOrder: React.FC = () => {
             </div>
 
             {cart.length === 0 ? (
-              <div className="py-14 text-center">
-                <div className="w-10 h-10 rounded-lg bg-brand-surface-raised border border-brand-border flex items-center justify-center mx-auto mb-2.5 text-brand-muted">
+              <div className="py-12 text-center">
+                <div className="w-10 h-10 rounded-lg bg-brand-surface-subtle border border-brand-border flex items-center justify-center mx-auto mb-2 text-brand-muted">
                   <ShoppingCart className="w-4 h-4" />
                 </div>
                 <p className="text-[14px] font-medium text-brand-text">
-                  Manifest is empty
+                  Your order is empty
                 </p>
-                <p className="text-[12px] text-brand-secondary mt-1 max-w-xs mx-auto">
-                  Select products from the catalogue on the left to prepare an order.
+                <p className="text-[12px] text-brand-secondary mt-0.5 max-w-xs mx-auto">
+                  Select products from the catalogue to start adding to your order.
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-brand-border/60 max-h-[360px] overflow-y-auto my-2 pr-1">
+              <div className="divide-y divide-brand-border max-h-[360px] overflow-y-auto my-2 pr-1">
                 {cart.map(({ product, quantity }) => (
                   <div key={product.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -375,17 +373,17 @@ export const CreateOrder: React.FC = () => {
                       <p className="text-[12px] font-mono text-brand-secondary mt-0.5">
                         ₹{product.price.toLocaleString('en-IN')} × {quantity}
                       </p>
-                      <p className="text-[11px] text-emerald-400 mt-0.5">
-                        Available: {product.stock_quantity} units
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        Available in stock: {product.stock_quantity}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center border border-brand-border rounded-md bg-brand-bg">
+                      <div className="flex items-center border border-brand-border rounded-md bg-white shadow-subtle">
                         <button
                           type="button"
                           onClick={() => updateQuantity(product.id, quantity - 1)}
-                          className="p-1 text-brand-muted hover:text-brand-text transition-colors"
+                          className="p-1 text-brand-secondary hover:text-brand-text transition-colors"
                           title="Decrease"
                         >
                           <Minus className="w-3.5 h-3.5" />
@@ -397,7 +395,7 @@ export const CreateOrder: React.FC = () => {
                           type="button"
                           onClick={() => updateQuantity(product.id, quantity + 1)}
                           disabled={quantity >= product.stock_quantity}
-                          className="p-1 text-brand-muted hover:text-brand-text disabled:opacity-30 transition-colors"
+                          className="p-1 text-brand-secondary hover:text-brand-text disabled:opacity-30 transition-colors"
                           title="Increase"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -411,7 +409,7 @@ export const CreateOrder: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeFromCart(product.id)}
-                        className="p-1 text-brand-muted hover:text-red-400 transition-colors"
+                        className="p-1 text-brand-muted hover:text-rose-600 transition-colors"
                         title="Remove"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -423,9 +421,9 @@ export const CreateOrder: React.FC = () => {
             )}
 
             {/* Calculations & Order Actions */}
-            <div className="pt-3.5 border-t border-brand-border space-y-2.5">
+            <div className="pt-3 border-t border-brand-border space-y-2">
               <div className="flex justify-between text-[12px] text-brand-secondary">
-                <span>Items Selected</span>
+                <span>Selected Items</span>
                 <span className="font-mono text-brand-text font-medium tabular-nums">
                   {totalUnitsInCart} units ({cart.length} SKUs)
                 </span>
@@ -433,7 +431,7 @@ export const CreateOrder: React.FC = () => {
 
               <div className="flex justify-between items-center text-[14px] text-brand-text pt-2 border-t border-brand-border">
                 <span className="font-medium">Total Amount</span>
-                <span className="text-[16px] text-brand-accent font-mono font-semibold tabular-nums">
+                <span className="text-[17px] text-brand-text font-mono font-semibold tabular-nums">
                   ₹{subtotal.toLocaleString('en-IN')}
                 </span>
               </div>
@@ -441,25 +439,25 @@ export const CreateOrder: React.FC = () => {
               <button
                 onClick={handleSubmitOrder}
                 disabled={cart.length === 0 || submitting}
-                className="w-full mt-3 py-2.5 bg-brand-accent hover:bg-brand-accent-hover disabled:bg-brand-surface-raised disabled:text-brand-muted disabled:cursor-not-allowed text-brand-bg font-medium text-[13px] rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-3 py-2.5 bg-brand-accent hover:bg-brand-accent-hover disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-medium text-[13px] rounded-md transition-colors flex items-center justify-center gap-2 shadow-subtle"
               >
                 {submitting ? (
                   <>
                     <LoadingSpinner size="sm" />
-                    <span>Committing order...</span>
+                    <span>Placing order...</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    <span>Submit & Place Order</span>
+                    <span>Place Order</span>
                   </>
                 )}
               </button>
 
-              <div className="p-2 rounded-md bg-brand-bg border border-brand-border flex items-center gap-2 text-[11px] text-brand-muted">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+              <div className="p-2 rounded-md bg-brand-surface-subtle border border-brand-border flex items-center gap-2 text-[11px] text-brand-secondary">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                 <span>
-                  ACID guaranteed. Inventory deducted atomically upon confirmation.
+                  Inventory is reserved and deducted immediately upon order placement.
                 </span>
               </div>
             </div>

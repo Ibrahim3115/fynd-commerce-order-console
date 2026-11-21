@@ -17,7 +17,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className = '',
 }) => (
   <div className={`flex flex-col items-center justify-center py-16 px-4 text-center ${className}`}>
-    <div className="w-10 h-10 rounded-lg bg-brand-surface-raised border border-brand-border flex items-center justify-center text-brand-muted mb-3">
+    <div className="w-10 h-10 rounded-lg bg-brand-surface-subtle border border-brand-border flex items-center justify-center text-brand-muted mb-3">
       {icon || <PackageOpen className="w-5 h-5 text-brand-muted" />}
     </div>
     <p className="text-brand-text font-medium text-[14px]">{title}</p>

@@ -31,16 +31,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   return (
     <NotificationContext.Provider value={{ notify }}>
       {children}
-      <div className="fixed top-5 right-5 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2.5rem)] pointer-events-none">
+      <div className="fixed top-5 right-5 z-50 flex flex-col gap-2 w-84 max-w-[calc(100vw-2.5rem)] pointer-events-none">
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className="pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg shadow-lg border border-brand-border bg-brand-surface/95 backdrop-blur-sm animate-fade-in text-brand-text"
+            className="pointer-events-auto flex items-start gap-3 p-3.5 rounded-lg shadow-card border border-brand-border bg-brand-surface animate-fade-in text-brand-text"
           >
             {toast.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
             ) : toast.type === 'error' ? (
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
             ) : (
               <Info className="w-4 h-4 text-brand-accent flex-shrink-0 mt-0.5" />
             )}

@@ -5,62 +5,60 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Core Surfaces & Borders
-        'brand-bg': '#090B0E',
-        'brand-surface': '#11151B',
-        'brand-surface-raised': '#191F27',
-        'brand-surface-2': '#191F27',
-        'brand-border': '#252D37',
-        'brand-border-subtle': '#1C232C',
-        
-        // Brand Accent
-        'brand-accent': '#E9A23B',
-        'brand-accent-hover': '#F5B04E',
-        'brand-accent-dim': '#C48126',
-        
-        // Consistent Text Tokens
-        'brand-text': '#E8EAF0',       // Primary text (headings, active values, high contrast)
-        'brand-secondary': '#A0A7B4',  // Secondary text (descriptions, regular labels, dates)
-        'brand-muted': '#737D8C',      // Muted text (secondary metadata, table headers, placeholders)
-        'brand-disabled': '#555F6D',   // Disabled text
-        
-        // Semantic Restrained Status Tokens
-        'brand-success': '#22C55E',
-        'brand-success-dim': 'rgba(34, 197, 94, 0.12)',
-        'brand-success-border': 'rgba(34, 197, 94, 0.25)',
-        
-        'brand-warning': '#F59E0B',
-        'brand-warning-dim': 'rgba(245, 158, 11, 0.12)',
-        'brand-warning-border': 'rgba(245, 158, 11, 0.25)',
-        
-        'brand-danger': '#EF4444',
-        'brand-danger-dim': 'rgba(239, 68, 68, 0.12)',
-        'brand-danger-border': 'rgba(239, 68, 68, 0.25)',
+        // Light Enterprise Palette
+        'brand-bg': '#F7F8FA',             // Main workspace canvas
+        'brand-surface': '#FFFFFF',        // Cards, panels, modals
+        'brand-surface-subtle': '#F9FAFB', // Table headers, light hover, subtle fills
+        'brand-surface-raised': '#F4F5F7', // Segmented controls, chips, elevated elements
+        'brand-border': '#E6E8EC',         // Clean 1px borders
+        'brand-border-subtle': '#EEF0F3',  // Inner borders, dividers
+
+        // Brand Accent (Warm Ochre / Honey Amber)
+        'brand-accent': '#C47A19',
+        'brand-accent-hover': '#B26E15',
+        'brand-accent-subtle': '#FFF5E8',  // Light background tint
+        'brand-accent-border': '#FDE2BC',
+
+        // Typography Color Tokens
+        'brand-text': '#20242C',           // Primary text (headings, active values)
+        'brand-secondary': '#667085',      // Secondary text (descriptions, body text, labels)
+        'brand-muted': '#98A2B3',          // Muted text (placeholders, table headers, icons)
+        'brand-disabled': '#D0D5DD',       // Inactive / disabled text
+
+        // Semantic Status Tokens (Light Backgrounds & Restrained Text)
+        'status-placed-text': '#1D68BD',
+        'status-placed-bg': '#EFF6FF',
+        'status-placed-border': '#DBEAFE',
+
+        'status-packed-text': '#B45309',
+        'status-packed-bg': '#FFFBEB',
+        'status-packed-border': '#FDE68A',
+
+        'status-shipped-text': '#15803D',
+        'status-shipped-bg': '#F0FDF4',
+        'status-shipped-border': '#BBF7D0',
+
+        'status-cancelled-text': '#B91C1C',
+        'status-cancelled-bg': '#FEF2F2',
+        'status-cancelled-border': '#FECACA',
 
         // Backward compatibility mappings
-        'brand-dark': '#090B0E',
-        'brand-panel': '#11151B',
-        'brand-card': '#191F27',
-        'brand-orange': '#E9A23B',
-        'brand-orange-dark': '#C48126',
-        'brand-orange-light': '#F5B04E',
+        'brand-dark': '#FFFFFF',
+        'brand-panel': '#FFFFFF',
+        'brand-card': '#FFFFFF',
+        'brand-orange': '#C47A19',
+        'brand-orange-dark': '#B26E15',
+        'brand-orange-light': '#FFF5E8',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
-      fontSize: {
-        'page-title': ['26px', { lineHeight: '32px', fontWeight: '600', letterSpacing: '-0.02em' }],
-        'section-title': ['18px', { lineHeight: '24px', fontWeight: '600', letterSpacing: '-0.01em' }],
-        'card-title': ['14px', { lineHeight: '20px', fontWeight: '500' }],
-        'body': ['13px', { lineHeight: '18px', fontWeight: '400' }],
-        'secondary': ['12px', { lineHeight: '16px', fontWeight: '400' }],
-        'table-header': ['11px', { lineHeight: '14px', fontWeight: '500' }],
-        'btn': ['13px', { lineHeight: '16px', fontWeight: '500' }],
-        'kpi': ['28px', { lineHeight: '34px', fontWeight: '600', letterSpacing: '-0.02em' }],
-      },
       boxShadow: {
-        'subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.35)',
+        'subtle': '0 1px 2px 0 rgba(16, 24, 40, 0.04)',
+        'card': '0 1px 3px 0 rgba(16, 24, 40, 0.06), 0 1px 2px -1px rgba(16, 24, 40, 0.04)',
+        'drawer': '-4px 0 24px -2px rgba(16, 24, 40, 0.08)',
+        'modal': '0 12px 32px -4px rgba(16, 24, 40, 0.12)',
       },
       borderRadius: {
         'sm': '4px',

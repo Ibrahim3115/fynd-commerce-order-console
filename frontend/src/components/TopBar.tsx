@@ -14,24 +14,24 @@ import { useSidebar } from '../context/SidebarContext';
 
 const pageConfig: Record<string, { title: string; subtitle: string }> = {
   '/': {
-    title: 'Operations Dashboard',
-    subtitle: 'Real-time telemetry, fulfilment metrics and stock warnings',
+    title: 'Dashboard',
+    subtitle: 'Store overview, fulfilment activity and stock levels',
   },
   '/orders': {
-    title: 'Order Management',
-    subtitle: 'Search, track, inspect and transition customer orders',
+    title: 'Orders',
+    subtitle: 'Track, manage and fulfil customer orders',
   },
   '/create-order': {
     title: 'Create Order',
-    subtitle: 'Select catalogue items, configure quantities and place orders',
+    subtitle: 'Select products, adjust quantities and create orders',
   },
   '/inventory': {
-    title: 'Inventory Catalogue',
-    subtitle: 'Warehouse product catalogue, SKU pricing and stock levels',
+    title: 'Inventory',
+    subtitle: 'Product catalogue and available warehouse stock',
   },
   '/settings': {
-    title: 'Settings & Architecture',
-    subtitle: 'API gateway status, ACID contracts and system specifications',
+    title: 'Settings',
+    subtitle: 'System configuration and backend service status',
   },
 };
 
@@ -39,8 +39,8 @@ export const TopBar: React.FC = () => {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const activePage = pageConfig[location.pathname] || {
-    title: 'FYND OPS Console',
-    subtitle: 'Commerce Operations Command Center',
+    title: 'FYND OPS',
+    subtitle: 'Commerce Operations Console',
   };
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -80,8 +80,8 @@ export const TopBar: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 right-0 h-16 bg-brand-surface border-b border-brand-border flex items-center px-6 z-20 gap-4 transition-all duration-200 ease-in-out ${
-        isCollapsed ? 'left-[72px]' : 'left-[240px]'
+      className={`fixed top-0 right-0 h-14 bg-brand-surface border-b border-brand-border flex items-center px-6 z-20 gap-4 transition-all duration-200 ease-in-out ${
+        isCollapsed ? 'left-[68px]' : 'left-[230px]'
       }`}
     >
       {/* Left: Collapse toggle + Page Context */}
@@ -89,7 +89,7 @@ export const TopBar: React.FC = () => {
         {isCollapsed && (
           <button
             onClick={toggleSidebar}
-            className="text-brand-muted hover:text-brand-text p-1.5 rounded-md hover:bg-brand-surface-raised transition-colors"
+            className="text-brand-muted hover:text-brand-text p-1 rounded-md hover:bg-brand-surface-subtle transition-colors"
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >
@@ -97,44 +97,44 @@ export const TopBar: React.FC = () => {
           </button>
         )}
         <div className="min-w-0">
-          <h1 className="text-brand-text font-semibold text-[15px] truncate">
+          <h1 className="text-brand-text font-semibold text-[15px] truncate leading-tight">
             {activePage.title}
           </h1>
-          <p className="text-[12px] text-brand-secondary truncate hidden sm:block">
+          <p className="text-[12px] text-brand-secondary truncate hidden sm:block leading-tight">
             {activePage.subtitle}
           </p>
         </div>
       </div>
 
-      {/* Right: Telemetry Badges */}
+      {/* Right: Telemetry & Status Badges */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        {/* Live Counters from Backend Data */}
+        {/* Live Counters */}
         {stats && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-raised border border-brand-border">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-subtle border border-brand-border text-brand-secondary text-[12px] font-medium">
               <ShoppingBag className="w-3.5 h-3.5 text-brand-accent" />
-              <span className="text-brand-text text-[12px] font-medium font-mono tabular-nums">
-                {stats.total_orders}{' '}
-                <span className="font-sans text-[11px] font-normal text-brand-secondary">orders</span>
+              <span className="font-mono text-brand-text tabular-nums font-semibold">
+                {stats.total_orders}
               </span>
+              <span className="text-[11px] font-normal text-brand-secondary">orders</span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-raised border border-brand-border">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-surface-subtle border border-brand-border text-brand-secondary text-[12px] font-medium">
               <Package className="w-3.5 h-3.5 text-brand-secondary" />
-              <span className="text-brand-text text-[12px] font-medium font-mono tabular-nums">
-                {stats.total_inventory}{' '}
-                <span className="font-sans text-[11px] font-normal text-brand-secondary">units</span>
+              <span className="font-mono text-brand-text tabular-nums font-semibold">
+                {stats.total_inventory}
               </span>
+              <span className="text-[11px] font-normal text-brand-secondary">units</span>
             </div>
           </div>
         )}
 
         {/* Live Clock & Date */}
         <div className="hidden md:flex flex-col items-end text-[12px] border-l border-brand-border pl-3">
-          <div className="flex items-center gap-1.5 text-brand-text font-medium font-mono tabular-nums">
+          <div className="flex items-center gap-1.5 text-brand-text font-medium font-mono tabular-nums leading-tight">
             <Clock className="w-3 h-3 text-brand-muted" />
             <span>{timeStr || '--:--:--'}</span>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-brand-muted">
+          <div className="flex items-center gap-1 text-[11px] text-brand-secondary mt-0.5 leading-tight">
             <Calendar className="w-2.5 h-2.5" />
             <span>{today}</span>
           </div>
@@ -142,7 +142,7 @@ export const TopBar: React.FC = () => {
 
         {/* User Profile */}
         <div className="flex items-center gap-2 pl-2 border-l border-brand-border">
-          <div className="w-7 h-7 rounded-full bg-brand-surface-raised border border-brand-border flex items-center justify-center text-brand-secondary">
+          <div className="w-7 h-7 rounded-full bg-brand-surface-subtle border border-brand-border flex items-center justify-center text-brand-secondary">
             <User className="w-3.5 h-3.5" />
           </div>
         </div>
