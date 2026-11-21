@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+backend/venv/
+backend/.venv/
+backend/env/
+
+# Database files (don't commit prod databases)
+*.db
+*.sqlite
+*.sqlite3
+test_fynd.db
+
+# Environment files
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Render/deployment
+.render/

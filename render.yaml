@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: fynd-ops-backend
+    runtime: python
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/fynd_ops.db
+      - key: CORS_ORIGINS
+        value: https://fynd-ops.vercel.app
+    disk:
+      name: fynd-ops-data
+      mountPath: /data
+      sizeGB: 1
