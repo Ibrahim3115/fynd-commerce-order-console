@@ -1,476 +1,485 @@
-# FYND OPS — Commerce Operations Command Center
+# FYND OPS — Commerce Order Management Console
 
-> **Fynd Hiring Hackathon — November 2026 | Full Stack (SDE 1)**
+**Fynd Hiring Hackathon — November 2026 | Full Stack Developer (SDE 1)**
+
+FYND OPS is a web-based commerce operations console for managing products, inventory, customer orders and order fulfilment.
+
+It provides a central place for operations teams to create orders, monitor stock, track order status and handle cancellations.
 
 ---
 
 ## Problem Statement
 
-Small and mid-size commerce businesses often manage orders through a chaotic mix of **spreadsheets, WhatsApp messages, and phone calls**. This leads to:
+Commerce operations teams can face difficulties when orders and inventory are managed manually:
 
-- Overselling products when multiple operators take orders simultaneously
-- No visibility into order fulfilment state across the team
-- Manual, error-prone stock counting after every sale
-- Zero audit trail for order changes or cancellations
-
-The result is frustrated customers, lost revenue, and burnt-out operations staff.
-
----
+- Stock quantities may become inconsistent after multiple orders.
+- Teams may lack visibility into order fulfilment status.
+- Manual cancellation and stock restoration can introduce errors.
+- Order changes may be difficult to trace.
 
 ## Solution
 
-**FYND OPS** is a lightweight, real-time **Commerce Operations Command Center** that replaces the spreadsheet+phone chaos with a single web application:
+FYND OPS provides a centralized order management application with:
 
-- One operator (or many simultaneously) can **create multi-product orders** with the confidence that stock is atomically deducted — no double-selling, ever.
-- Orders move through a clear **fulfilment state machine** (PLACED → PACKED → SHIPPED) so the whole team knows where every order stands.
-- Cancellations are instant and **automatically restore inventory**.
-- A live **dashboard** gives management a bird's-eye view of orders, inventory, and low-stock alerts.
-
----
+- Multi-product order creation.
+- Server-side stock validation and deduction.
+- Order fulfilment status management.
+- Cancellation with inventory restoration.
+- Order search and status filtering.
+- Dashboard statistics and inventory visibility.
+- Order status history for tracking changes.
 
 ## Features
 
-| # | Feature | Status |
-|---|---------|--------|
-| 1 | Real-time inventory management | ✅ |
-| 2 | Multi-product order creation with atomic stock deduction | ✅ |
-| 3 | Fulfilment state machine (PLACED → PACKED → SHIPPED) | ✅ |
-| 4 | Order cancellation with stock restoration | ✅ |
-| 5 | Transaction-safe concurrent order processing | ✅ |
-| 6 | Full-text order search and status filtering | ✅ |
-| 7 | Dashboard with live stats & low-stock alerts | ✅ |
-| 8 | Automated pytest test suite (13 tests including restart persistence) | ✅ |
+| Feature | Description |
+|---|---|
+| Product catalogue | View available products, prices and stock |
+| Order creation | Create orders containing multiple products |
+| Stock validation | Reject orders when requested stock is unavailable |
+| Transaction handling | Process order creation and stock deductions together |
+| Duplicate item handling | Combine quantities for repeated product IDs |
+| Order management | Search orders and filter by status |
+| Fulfilment workflow | Move orders from PLACED to PACKED to SHIPPED |
+| Cancellation | Cancel eligible orders and restore stock |
+| Status history | Record order status changes |
+| Dashboard | View order statistics and inventory information |
+| Persistence | Store application data in SQLite |
 
----
+## Order Workflow
 
-## Tech Stack
+```text
+                 Create Order
+                      |
+                      v
+                   PLACED
+                      |
+                      v
+                   PACKED
+                      |
+                      v
+                   SHIPPED
+```
+
+Cancellation is allowed only from PLACED or PACKED.
+
+```text
+PLACED ---------> CANCELLED
+PACKED ---------> CANCELLED
+
+SHIPPED --------> Cancellation not allowed
+```
+
+The backend validates transitions. Invalid transitions are rejected.
+
+When an order is cancelled successfully, its stock is restored as part of the cancellation transaction. Repeated cancellation requests are rejected.
+
+## Inventory and Order Safety
+
+Order creation follows these steps:
+
+1. Validate that the order contains at least one item.
+2. Combine quantities for repeated product IDs.
+3. Check that every requested product exists.
+4. Validate the combined requested quantity against available stock.
+5. Create the order and its item records.
+6. Deduct stock using conditional database updates.
+7. Commit the transaction.
+
+If a requested item cannot be fulfilled, the order is rejected and the transaction is rolled back.
+
+The implementation includes conditional stock updates and stale-status protection. The automated tests cover these business rules, but a dedicated high-concurrency stress test has not yet been performed.
+
+## Technology Stack
 
 | Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Recharts |
-| **Backend** | Python 3.11+, FastAPI, SQLAlchemy 2.x |
-| **Database** | SQLite (dev) / PostgreSQL (prod) |
-| **Testing** | Pytest, FastAPI TestClient |
-| **Deployment** | Vercel (frontend) + Render (backend) |
-
----
+|---|---|
+| Frontend | React 19, TypeScript, Vite |
+| Styling | Tailwind CSS |
+| Charts | Recharts |
+| Icons | Lucide React |
+| API communication | Axios |
+| Backend | Python, FastAPI |
+| ORM | SQLAlchemy 2.x |
+| Validation | Pydantic 2 |
+| Database | SQLite |
+| Testing | Pytest, FastAPI TestClient |
+| Frontend deployment configuration | Vercel |
+| Backend deployment configuration | Render |
 
 ## Architecture
 
+```text
+Browser
+  |
+  v
+React + TypeScript Frontend
+  |
+  | HTTP / JSON
+  v
+FastAPI Backend
+  |
+  +-- Health Router
+  |
+  +-- Products Router
+  |
+  +-- Orders Router
+  |
+  +-- Dashboard Router
+  |
+  v
+CRUD / Business Logic
+  |
+  v
+SQLAlchemy ORM
+  |
+  v
+SQLite Database
+  |
+  +-- Products
+  +-- Orders
+  +-- Order Items
+  +-- Order Status History
 ```
-┌─────────────────────────────────────────────────┐
-│               Browser (React SPA)               │
-│  Dashboard │ Inventory │ Orders │ New Order UI  │
-└─────────────────────┬───────────────────────────┘
-                      │  HTTP/JSON (REST)
-                      ▼
-┌─────────────────────────────────────────────────┐
-│            FastAPI Application Server           │
-│  /api/products  /api/orders  /api/dashboard     │
-│  /api/fulfilment  /health                       │
-│                                                 │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐ │
-│  │ Products │  │  Orders  │  │  Dashboard    │ │
-│  │  Router  │  │  Router  │  │  Router       │ │
-│  └──────────┘  └────┬─────┘  └───────────────┘ │
-│                     │                           │
-│         ┌───────────▼──────────┐                │
-│         │  Business Logic /    │                │
-│         │  CRUD Layer          │                │
-│         └───────────┬──────────┘                │
-│                     │ SQLAlchemy 2.x             │
-└─────────────────────┼───────────────────────────┘
-                      │
-         ┌────────────▼────────────┐
-         │   SQLite (dev)          │
-         │   PostgreSQL (prod)     │
-         └─────────────────────────┘
-```
-
----
 
 ## Database Design
 
-### `products`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer PK | Auto-increment |
-| name | String | Product display name |
-| sku | String (unique) | Stock-Keeping Unit |
-| description | Text | Optional description |
-| price | Float | Unit price (INR) |
-| stock_quantity | Integer | Current available stock |
-| category | String | Product category |
-| created_at | DateTime | Auto-set on creation |
-
-### `orders`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer PK | Auto-increment |
-| order_reference | String (unique, indexed) | Format: `ORD-YYYYMMDD-XXXXXX` |
-| status | String | PLACED / PACKED / SHIPPED / CANCELLED |
-| total_amount | Float | Sum of all line totals |
-| created_at | DateTime | Auto-set |
-| updated_at | DateTime | Updated on every status change |
-| cancelled_at | DateTime (nullable) | Set on cancellation |
-
-### `order_items`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer PK | Auto-increment |
-| order_id | Integer FK → orders.id | Cascade delete |
-| product_id | Integer FK → products.id | Reference |
-| product_name_snapshot | String | Name at time of order (preserved even if product is renamed) |
-| quantity | Integer | Ordered quantity |
-| unit_price | Float | Price at time of order |
-| line_total | Float | quantity × unit_price |
-
-### `order_status_history`
-| Column | Type | Notes |
-|--------|------|-------|
-| id | Integer PK | Auto-increment |
-| order_id | Integer FK → orders.id | Cascade |
-| from_status | String (nullable) | Previous status (null on creation) |
-| to_status | String | New status |
-| changed_at | DateTime | Auto-set |
-| notes | String (nullable) | Optional human note |
-
----
-
-## Order State Machine
-
-```
-                  ┌─────────┐
-        create    │  PLACED │
-   ─────────────► │         │
-                  └────┬────┘
-                       │  PATCH /status → PACKED
-                       ▼
-                  ┌─────────┐
-                  │ PACKED  │
-                  └────┬────┘
-                       │  PATCH /status → SHIPPED
-                       ▼
-                  ┌─────────┐
-                  │ SHIPPED │  (terminal)
-                  └─────────┘
-
-PLACED  ──► CANCELLED  (stock restored)
-PACKED  ──► CANCELLED  (stock restored)
-SHIPPED ──► CANCELLED  ✗  not allowed
-```
-
-**Invalid transitions return HTTP 422** with a clear human-readable message.
-
----
-
-## API Documentation
-
-### Health
-
-#### `GET /health`
-Returns server status.
-
-**Response:**
-```json
-{ "status": "ok", "service": "FYND OPS Backend" }
-```
-
----
-
 ### Products
 
-#### `GET /api/products`
-List all products with current stock levels.
+Stores product catalogue and inventory information.
 
-**Response:**
-```json
-[
-  {
-    "id": 1,
-    "name": "Wireless Headphones",
-    "sku": "WH-001",
-    "price": 2499.0,
-    "stock_quantity": 15,
-    "category": "Electronics",
-    "description": null,
-    "created_at": "2026-11-21T10:00:00"
-  }
-]
-```
-
-#### `GET /api/products/{id}`
-Get a single product by ID.
-
-**Response:** Same shape as above, or `404` if not found.
-
----
+| Field | Description |
+|---|---|
+| id | Product identifier |
+| name | Product name |
+| sku | Unique stock-keeping unit |
+| description | Optional product description |
+| price | Product price |
+| stock_quantity | Available stock |
+| category | Product category |
+| created_at | Creation timestamp |
 
 ### Orders
 
-#### `POST /api/orders`
-Create a new order. Atomically validates all items and deducts stock in a single transaction.
+Stores order-level information.
 
-**Request body:**
+| Field | Description |
+|---|---|
+| id | Order identifier |
+| order_reference | Unique order reference |
+| status | Current order status |
+| total_amount | Total order value |
+| created_at | Creation timestamp |
+| updated_at | Last update timestamp |
+| cancelled_at | Cancellation timestamp, if applicable |
+
+### Order Items
+
+Stores the products belonging to each order.
+
+| Field | Description |
+|---|---|
+| id | Order item identifier |
+| order_id | Related order |
+| product_id | Related product |
+| product_name_snapshot | Product name at order time |
+| quantity | Ordered quantity |
+| unit_price | Price at order time |
+| line_total | Quantity multiplied by unit price |
+
+### Order Status History
+
+Stores changes to an order's fulfilment status.
+
+| Field | Description |
+|---|---|
+| id | History record identifier |
+| order_id | Related order |
+| from_status | Previous status |
+| to_status | New status |
+| changed_at | Change timestamp |
+| notes | Optional notes |
+
+## API Documentation
+
+Interactive API documentation is available through FastAPI Swagger UI at `/docs`.
+
+### Health
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Check backend health |
+
+### Products
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/products` | List products |
+| GET | `/api/products/{product_id}` | Get product details |
+
+### Orders
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/orders` | Create an order |
+| GET | `/api/orders` | List and filter orders |
+| GET | `/api/orders/{order_id}` | Get order details |
+| GET | `/api/orders/reference/{reference}` | Find order by reference |
+| PATCH | `/api/orders/{order_id}/status` | Update fulfilment status |
+| POST | `/api/orders/{order_id}/cancel` | Cancel an eligible order |
+
+### Dashboard
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/dashboard/stats` | Retrieve dashboard statistics |
+
+### Example: Create an Order
+
+Request:
+
 ```json
 {
   "items": [
-    { "product_id": 1, "quantity": 2 },
-    { "product_id": 3, "quantity": 1 }
+    {
+      "product_id": 1,
+      "quantity": 2
+    },
+    {
+      "product_id": 3,
+      "quantity": 1
+    }
   ]
 }
 ```
 
-**Success (201):**
+The backend validates all requested products and quantities before committing the order.
+
+### Example: Update Order Status
+
+Request:
+
 ```json
 {
-  "id": 42,
-  "order_reference": "ORD-20261121-A3F9KL",
-  "status": "PLACED",
-  "total_amount": 6497.0,
-  "items": [
-    {
-      "product_id": 1,
-      "product_name_snapshot": "Wireless Headphones",
-      "quantity": 2,
-      "unit_price": 2499.0,
-      "line_total": 4998.0
-    },
-    {
-      "product_id": 3,
-      "product_name_snapshot": "Gaming Mouse",
-      "quantity": 1,
-      "unit_price": 1499.0,
-      "line_total": 1499.0
-    }
-  ],
-  "created_at": "2026-11-21T10:05:00",
-  "updated_at": "2026-11-21T10:05:00",
-  "cancelled_at": null
+  "status": "PACKED"
 }
 ```
 
-**Error (422) — insufficient stock:**
-```json
-{ "detail": "Insufficient stock for 'Wireless Headphones'. Available: 1, Requested: 2" }
-```
+Only the supported fulfilment transitions are accepted. Cancellation is handled through its separate endpoint.
 
-#### `GET /api/orders`
-List orders with optional search and filtering.
+## Sample Catalogue
 
-**Query params:**
-| Param | Type | Description |
-|-------|------|-------------|
-| search | string | Full-text search on order_reference |
-| status | string | Filter by status (PLACED/PACKED/SHIPPED/CANCELLED) |
-| skip | int | Pagination offset (default 0) |
-| limit | int | Page size (default 50, max 200) |
+The application seeds a sample product catalogue when the backend starts and the catalogue is empty.
 
-#### `GET /api/orders/{id}`
-Get a single order by numeric ID, including items and status history.
+It includes:
 
-#### `GET /api/orders/reference/{reference}`
-Get a single order by its `ORD-YYYYMMDD-XXXXXX` reference string.
+- Wireless Headphones
+- Mechanical Keyboard
+- Gaming Mouse
+- USB-C Hub
+- Laptop Stand
+- Bluetooth Speaker
 
-#### `PATCH /api/orders/{id}/status`
-Advance order through the state machine.
-
-**Request body:**
-```json
-{ "status": "PACKED" }
-```
-
-**Error (422) — invalid transition:**
-```json
-{ "detail": "Cannot transition from SHIPPED to PLACED. Valid transitions: none (terminal state)." }
-```
-
-#### `POST /api/orders/{id}/cancel`
-Cancel an order (PLACED or PACKED only). Restores all stock atomically.
-
-**Success (200):** Returns updated order object with `status: "CANCELLED"`.
-
-**Error (409) — already cancelled:**
-```json
-{ "detail": "Order ORD-20261121-A3F9KL is already CANCELLED." }
-```
-
----
-
-### Dashboard
-
-#### `GET /api/dashboard/stats`
-Aggregate statistics for the operations dashboard.
-
-**Response:**
-```json
-{
-  "total_orders": 24,
-  "placed": 5,
-  "packed": 3,
-  "shipped": 14,
-  "cancelled": 2,
-  "total_inventory": 487,
-  "low_stock_products": [
-    { "id": 4, "name": "USB-C Hub", "sku": "UC-004", "stock_quantity": 2 }
-  ],
-  "recent_orders": [ "...last 5 orders..." ],
-  "recent_activity": [ "...last 10 status history entries..." ]
-}
-```
-
----
+The sample catalogue includes an out-of-stock product for validation scenarios.
 
 ## Local Setup
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 18+
+
+- Python 3.11 or later
+- Node.js 18 or later
+- npm
 - Git
 
----
-
-### Backend Setup
+### 1. Clone the repository
 
 ```bash
-cd backend
-python -m venv venv
-
-# Activate virtualenv:
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env
-
-uvicorn app.main:app --reload --port 8000
+git clone https://github.com/Ibrahim3115/fynd-commerce-order-console.git
+cd fynd-commerce-order-console
 ```
 
-API docs available at:
-- **Swagger UI:** http://localhost:8000/docs
-- **ReDoc:** http://localhost:8000/redoc
+### 2. Start the backend
 
----
+Open a terminal in the project directory:
 
-### Frontend Setup
+```powershell
+cd backend
 
-```bash
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+
+Copy-Item .env.example .env
+
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+The backend runs at:
+
+- API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+The default database is SQLite. The application creates its tables and seeds the sample catalogue on startup.
+
+### 3. Start the frontend
+
+Open a second terminal:
+
+```powershell
 cd frontend
+
 npm install
-cp .env.example .env     # or create with: echo "VITE_API_URL=http://localhost:8000" > .env
+Copy-Item .env.example .env
+
 npm run dev
 ```
 
-Frontend runs at **http://localhost:5173** by default.
+The frontend runs at:
 
----
+http://localhost:5173
 
-### Running Tests
+The frontend environment variable is:
 
-```bash
-cd backend
-python -m pytest tests/ -v
+```env
+VITE_API_URL=http://localhost:8000
 ```
 
-Expected output: **13 passed** covering order creation, multi-item atomic validation, state machine transitions, cancellation, stock restoration, and database restart persistence.
+## Automated Tests
 
----
+The backend uses Pytest and FastAPI TestClient.
+
+Run the tests from the backend directory:
+
+```powershell
+python -m pytest -q
+```
+
+The current automated suite contains **21 tests** covering:
+
+- Successful order creation.
+- Insufficient-stock rejection.
+- Multi-product order details.
+- Duplicate product quantity handling.
+- Prevention of overselling through duplicate order items.
+- Invalid fulfilment transitions.
+- Valid fulfilment transitions.
+- Cancellation and stock restoration.
+- Repeated cancellation rejection.
+- Cancellation restrictions for shipped orders.
+- Order status history.
+- Invalid quantities and product IDs.
+- Unsupported status values.
+- Dashboard and health endpoints.
+- Database persistence across restart.
+- Stale order status update conflicts.
+
+Latest verified result:
+
+```text
+21 passed
+```
 
 ## Environment Variables
 
-### Backend (`backend/.env`)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `sqlite:///./fynd_ops.db` | Database connection string |
-| `CORS_ORIGINS` | `*` | Allowed origins (comma-separated) |
+### Backend
 
-### Frontend (`frontend/.env`)
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:8000` | Backend API base URL |
+File: `backend/.env`
 
----
+| Variable | Default | Purpose |
+|---|---|---|
+| DATABASE_URL | `sqlite:///./fynd_ops.db` | Database connection |
+| CORS_ORIGINS | `*` | Allowed frontend origins |
 
-## Deployment
+### Frontend
+
+File: `frontend/.env`
+
+| Variable | Example | Purpose |
+|---|---|---|
+| VITE_API_URL | `http://localhost:8000` | Backend API base URL |
+
+Do not commit private environment files or credentials.
+
+## Deployment Configuration
+
+The repository includes configuration files for deploying the frontend and backend.
 
 ### Frontend — Vercel
 
-1. Push repo to GitHub.
-2. Import repo in [vercel.com](https://vercel.com).
-3. Vercel auto-detects `vercel.json` — no manual config needed.
-4. Add environment variable `VITE_API_URL` → your Render backend URL.
-5. Click **Deploy**.
+The `vercel.json` file configures the frontend build and SPA routing.
 
-The included [`vercel.json`](vercel.json) handles SPA routing (all paths → `index.html`).
+Set the `VITE_API_URL` environment variable to the deployed backend URL before building.
 
 ### Backend — Render
 
-1. Create a **Web Service** in [render.com](https://render.com), pointing at the same repo.
-2. The included [`render.yaml`](render.yaml) configures:
-   - Build: `cd backend && pip install -r requirements.txt`
-   - Start: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - A **1 GB persistent disk** mounted at `/data` for the SQLite database
-3. Add environment variable `CORS_ORIGINS` → your Vercel frontend URL.
-4. Click **Deploy**.
+The `render.yaml` file configures:
 
-> **Note:** For production scale, replace SQLite with PostgreSQL by changing `DATABASE_URL` to a Postgres connection string — no code changes required, SQLAlchemy handles both.
+- Python backend build command.
+- Uvicorn start command.
+- Backend environment variables.
+- A persistent disk for the SQLite database.
 
----
+Update `CORS_ORIGINS` to the actual frontend domain when deploying.
 
-## Screenshots
+The included files provide deployment configuration; successful deployment should be verified separately.
 
-> Add screenshots to `/screenshots` directory after running the application locally.
-
-Suggested screenshots:
-- Dashboard overview
-- New order form with multi-item selection
-- Order list with search/filter
-- Order detail with status history timeline
-- Inventory table with low-stock highlights
-
----
+For a larger production workload, PostgreSQL, database migrations, authentication, role-based access control and production monitoring should be added and tested.
 
 ## Project Structure
 
-```
+```text
 Fynd-Commerce-Console/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py          # FastAPI app, lifespan, middleware
-│   │   ├── config.py        # Pydantic settings
-│   │   ├── database.py      # SQLAlchemy engine & session
-│   │   ├── models.py        # ORM models
-│   │   ├── schemas.py       # Pydantic request/response schemas
-│   │   ├── crud.py          # Business logic & DB operations
-│   │   └── routers/
-│   │       ├── products.py
-│   │       ├── orders.py
-│   │       ├── fulfilment.py
-│   │       ├── dashboard.py
-│   │       └── health.py
-│   ├── tests/
-│   │   └── test_orders.py   # 12-test pytest suite
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── start.sh
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx
-│   │   ├── components/
-│   │   └── ...
-│   ├── package.json
-│   └── .env.example
-├── README.md
-├── .gitignore
-├── render.yaml
-└── vercel.json
+|
++-- backend/
+|   |
+|   +-- app/
+|   |   |
+|   |   +-- main.py
+|   |   +-- config.py
+|   |   +-- database.py
+|   |   +-- models.py
+|   |   +-- schemas.py
+|   |   +-- crud.py
+|   |   |
+|   |   +-- routers/
+|   |       +-- health.py
+|   |       +-- products.py
+|   |       +-- orders.py
+|   |       +-- fulfilment.py  (placeholder; transitions are handled by orders.py)
+|   |       +-- dashboard.py
+|   |
+|   +-- tests/
+|   |   +-- conftest.py
+|   |   +-- test_orders.py
+|   |   +-- verify_workflow.py
+|   |
+|   +-- requirements.txt
+|   +-- .env.example
+|
++-- frontend/
+|   |
+|   +-- src/
+|   +-- package.json
+|   +-- .env.example
+|   +-- .env.production.example
+|
++-- README.md
++-- .gitignore
++-- render.yaml
++-- vercel.json
 ```
 
----
+## Future Improvements
+
+- Authentication and role-based permissions.
+- PostgreSQL with Alembic migrations.
+- Product creation and editing.
+- Pagination and advanced reporting.
+- Dedicated concurrency and load testing.
+- Production logging and monitoring.
+- Integration with external fulfilment services.
 
 ## License
 
-MIT © 2026 FYND OPS Team
+MIT License

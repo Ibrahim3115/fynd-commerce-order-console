@@ -46,25 +46,38 @@ def _generate_order_reference() -> str:
 
 def create_order(db: Session, order_in: schemas.OrderCreate) -> models.Order:
     # ── Validate every item first (no DB writes yet) ──────────────────────
-    validated = []
+    # Combine quantities for duplicate product IDs.
+    requested_quantities = {}
+
     for item in order_in.items:
-        product = get_product(db, item.product_id)
+        if item.product_id in requested_quantities:
+            requested_quantities[item.product_id] += item.quantity
+        else:
+            requested_quantities[item.product_id] = item.quantity
+
+    # Validate the combined quantity for each product.
+    validated = []
+
+    for product_id, quantity in requested_quantities.items():
+        product = get_product(db, product_id)
+
         if product is None:
             raise HTTPException(
                 status_code=422,
-                detail=f"Product with id={item.product_id} does not exist",
+                detail=f"Product with id={product_id} does not exist",
             )
-        if product.stock_quantity < item.quantity:
+
+        if product.stock_quantity < quantity:
             raise HTTPException(
                 status_code=422,
                 detail=(
                     f"Insufficient stock for '{product.name}' "
-                    f"(available: {product.stock_quantity}, requested: {item.quantity})"
+                    f"(available: {product.stock_quantity}, requested: {quantity})"
                 ),
             )
-        validated.append((product, item.quantity))
 
-    # ── All validations passed → one transaction ──────────────────────────
+        validated.append((product, quantity))
+
     try:
         total = sum(p.price * qty for p, qty in validated)
         order = models.Order(
@@ -88,12 +101,23 @@ def create_order(db: Session, order_in: schemas.OrderCreate) -> models.Order:
                     line_total=product.price * qty,
                 )
             )
-            # Atomic decrement
-            db.execute(
+            # Atomic stock decrement with availability protection.
+            result = db.execute(
                 update(models.Product)
-                .where(models.Product.id == product.id)
-                .values(stock_quantity=models.Product.stock_quantity - qty)
+                .where(
+                    models.Product.id == product.id,
+                    models.Product.stock_quantity >= qty,
+                )
+                .values(
+                    stock_quantity=models.Product.stock_quantity - qty
+                )
             )
+
+            if result.rowcount != 1:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Insufficient stock for '{product.name}'",
+                )
 
         db.add(
             models.OrderStatusHistory(
@@ -164,20 +188,41 @@ def update_order_status(
     db: Session, order: models.Order, new_status: str
 ) -> models.Order:
     new_status = new_status.upper()
-    allowed = VALID_TRANSITIONS.get(order.status, [])
+    old_status = order.status
+
+    allowed = VALID_TRANSITIONS.get(old_status, [])
+
     if new_status not in allowed:
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Cannot transition order from {order.status} to {new_status}. "
+                f"Cannot transition order from {old_status} to {new_status}. "
                 f"Valid transitions: {allowed or 'none'}"
             ),
         )
 
-    old_status = order.status
     try:
-        order.status = new_status
-        order.updated_at = utc_now()
+        # Update only if the order still has its original status.
+        result = db.execute(
+            update(models.Order)
+            .where(
+                models.Order.id == order.id,
+                models.Order.status == old_status,
+            )
+            .values(
+                status=new_status,
+                updated_at=utc_now(),
+            )
+            .execution_options(synchronize_session=False)
+        )
+
+        if result.rowcount != 1:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Order status has changed. Please refresh and try again.",
+            )
+
         db.add(
             models.OrderStatusHistory(
                 order_id=order.id,
@@ -186,39 +231,65 @@ def update_order_status(
                 changed_at=utc_now(),
             )
         )
+
         db.commit()
+
     except HTTPException:
         db.rollback()
         raise
     except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to update order status")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update order status",
+        )
 
     db.refresh(order)
     return order
 
 
 def cancel_order(db: Session, order: models.Order) -> models.Order:
-    if order.status == "CANCELLED":
+    old_status = order.status
+
+    if old_status == "CANCELLED":
         raise HTTPException(status_code=409, detail="Order is already cancelled")
-    if order.status not in ("PLACED", "PACKED"):
+
+    if old_status not in ("PLACED", "PACKED"):
         raise HTTPException(
             status_code=422,
-            detail=f"Cannot cancel order in status {order.status}",
+            detail=f"Cannot cancel order in status {old_status}",
         )
 
-    old_status = order.status
     try:
-        order.status = "CANCELLED"
-        order.cancelled_at = utc_now()
-        order.updated_at = utc_now()
+        # Allow only one request to cancel this order.
+        result = db.execute(
+            update(models.Order)
+            .where(
+                models.Order.id == order.id,
+                models.Order.status.in_(["PLACED", "PACKED"]),
+            )
+            .values(
+                status="CANCELLED",
+                cancelled_at=utc_now(),
+                updated_at=utc_now(),
+            )
+        )
 
-        # Restore stock for all items
+        if result.rowcount != 1:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Order has already been cancelled or its status has changed",
+            )
+
+        # Restore stock only after the conditional cancellation succeeds.
         for item in order.items:
             db.execute(
                 update(models.Product)
                 .where(models.Product.id == item.product_id)
-                .values(stock_quantity=models.Product.stock_quantity + item.quantity)
+                .values(
+                    stock_quantity=models.Product.stock_quantity + item.quantity
+                )
             )
 
         db.add(
@@ -230,7 +301,9 @@ def cancel_order(db: Session, order: models.Order) -> models.Order:
                 notes="Order cancelled, stock restored",
             )
         )
+
         db.commit()
+
     except HTTPException:
         db.rollback()
         raise

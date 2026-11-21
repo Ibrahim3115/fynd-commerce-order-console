@@ -46,7 +46,7 @@ def test_insufficient_stock_atomic_rejection(client, db):
     product_b = create_test_product(db, name="Prod B", stock=0, price=200.0)
 
     resp = place_order(client, (product_a.id, 2), (product_b.id, 1))
-    assert resp.status_code >= 400, f"Expected 4xx but got {resp.status_code}"
+    assert resp.status_code == 422, f"Expected 4xx but got {resp.status_code}"
 
     # Stock for A must be UNCHANGED
     a_resp = client.get(f"/api/products/{product_a.id}")
@@ -71,7 +71,7 @@ def test_invalid_transition_placed_to_shipped(client, db):
     order_id = order_resp.json()["id"]
 
     resp = client.patch(f"/api/orders/{order_id}/status", json={"status": "SHIPPED"})
-    assert resp.status_code >= 400, f"Expected 4xx, got {resp.status_code}: {resp.text}"
+    assert resp.status_code == 422, f"Expected 4xx, got {resp.status_code}: {resp.text}"
 
     # Status must still be PLACED
     get_resp = client.get(f"/api/orders/{order_id}")
@@ -112,7 +112,7 @@ def test_duplicate_cancellation_rejected(client, db):
 
     # Second cancel — must fail
     second = client.post(f"/api/orders/{order_id}/cancel")
-    assert second.status_code >= 400, f"Expected 4xx, got {second.status_code}"
+    assert second.status_code == 409, f"Expected 4xx, got {second.status_code}"
 
     # Stock must still be 10, not 13 (restored twice)
     assert client.get(f"/api/products/{product.id}").json()["stock_quantity"] == 10
@@ -130,7 +130,7 @@ def test_cancellation_from_shipped_rejected(client, db):
     assert advance_to_shipped(client, order_id).status_code == 200
 
     cancel_resp = client.post(f"/api/orders/{order_id}/cancel")
-    assert cancel_resp.status_code >= 400, f"Expected 4xx, got {cancel_resp.status_code}: {cancel_resp.text}"
+    assert cancel_resp.status_code == 422, f"Expected 4xx, got {cancel_resp.status_code}: {cancel_resp.text}"
 
 
 # ─── TEST 7 — PLACED→PACKED succeeds ─────────────────────────────────────────
@@ -170,7 +170,7 @@ def test_packed_to_shipped_succeeds(client, db):
 
 def test_empty_order_rejected(client, db):
     resp = client.post("/api/orders", json={"items": []})
-    assert resp.status_code >= 400, f"Expected 4xx, got {resp.status_code}"
+    assert resp.status_code == 422, f"Expected 4xx, got {resp.status_code}"
 
 
 # ─── TEST 10 — Invalid quantity rejected ─────────────────────────────────────
@@ -180,11 +180,11 @@ def test_invalid_quantity_rejected(client, db):
 
     # quantity = 0
     resp_zero = client.post("/api/orders", json={"items": [{"product_id": product.id, "quantity": 0}]})
-    assert resp_zero.status_code >= 400, f"quantity=0 should be rejected, got {resp_zero.status_code}"
+    assert resp_zero.status_code == 422, f"quantity=0 should be rejected, got {resp_zero.status_code}"
 
     # quantity = -1
     resp_neg = client.post("/api/orders", json={"items": [{"product_id": product.id, "quantity": -1}]})
-    assert resp_neg.status_code >= 400, f"quantity=-1 should be rejected, got {resp_neg.status_code}"
+    assert resp_neg.status_code == 422, f"quantity=-1 should be rejected, got {resp_neg.status_code}"
 
 
 # ─── TEST 11 — Dashboard stats endpoint ──────────────────────────────────────
@@ -318,3 +318,161 @@ def test_order_with_multiple_products_returns_item_details_and_count(client, db)
     if recent_matched:
         assert len(recent_matched[0]["items"]) == 2
         assert sum(i["quantity"] for i in recent_matched[0]["items"]) == 7
+
+
+def test_duplicate_product_items_cannot_oversell_stock(client, db):
+    product = create_test_product(db, name="Headphones", stock=10, price=100.0)
+
+    # Request the same product twice: total requested quantity is 14.
+    resp = place_order(
+        client,
+        (product.id, 7),
+        (product.id, 7),
+    )
+
+    # The order must be rejected because only 10 units exist.
+    assert resp.status_code == 422
+
+    # Inventory must remain unchanged.
+    stock_resp = client.get(f"/api/products/{product.id}")
+    assert stock_resp.json()["stock_quantity"] == 10
+
+    # No partial order must be created.
+    orders_resp = client.get("/api/orders")
+    assert orders_resp.json() == []
+
+
+def test_duplicate_product_items_with_sufficient_stock_are_combined(client, db):
+    product = create_test_product(db, name="Keyboard", stock=10, price=100.0)
+
+    resp = place_order(
+        client,
+        (product.id, 3),
+        (product.id, 2),
+    )
+
+    assert resp.status_code == 201
+
+    order = resp.json()
+    assert len(order["items"]) == 1
+    assert order["items"][0]["quantity"] == 5
+    assert order["total_amount"] == 500.0
+
+    stock_resp = client.get(f"/api/products/{product.id}")
+    assert stock_resp.json()["stock_quantity"] == 5
+
+def test_packed_order_cancellation_restores_stock(client, db):
+    product = create_test_product(db, name="Packed Keyboard", stock=10, price=100.0)
+
+    resp = place_order(client, (product.id, 3))
+    assert resp.status_code == 201
+
+    order = resp.json()
+    order_id = order["id"]
+
+    pack_resp = client.patch(
+        f"/api/orders/{order_id}/status",
+        json={"status": "PACKED"},
+    )
+    assert pack_resp.status_code == 200
+
+    cancel_resp = client.post(f"/api/orders/{order_id}/cancel")
+    assert cancel_resp.status_code == 200
+    assert cancel_resp.json()["status"] == "CANCELLED"
+
+    stock_resp = client.get(f"/api/products/{product.id}")
+    assert stock_resp.json()["stock_quantity"] == 10
+
+    # Confirm cancellation cannot restore the same stock twice.
+    second_cancel = client.post(f"/api/orders/{order_id}/cancel")
+    assert second_cancel.status_code == 409
+
+    stock_resp = client.get(f"/api/products/{product.id}")
+    assert stock_resp.json()["stock_quantity"] == 10
+
+
+def test_order_status_history_records_transitions(client, db):
+    product = create_test_product(db, name="History Mouse", stock=10, price=100.0)
+
+    resp = place_order(client, (product.id, 2))
+    assert resp.status_code == 201
+
+    order_id = resp.json()["id"]
+
+    pack_resp = client.patch(
+        f"/api/orders/{order_id}/status",
+        json={"status": "PACKED"},
+    )
+    assert pack_resp.status_code == 200
+
+    cancel_resp = client.post(f"/api/orders/{order_id}/cancel")
+    assert cancel_resp.status_code == 200
+
+    detail_resp = client.get(f"/api/orders/{order_id}")
+    assert detail_resp.status_code == 200
+
+    history = detail_resp.json()["status_history"]
+
+    assert len(history) == 3
+    assert [entry["to_status"] for entry in history] == [
+        "PLACED",
+        "PACKED",
+        "CANCELLED",
+    ]
+    assert history[0]["from_status"] is None
+    assert history[1]["from_status"] == "PLACED"
+    assert history[2]["from_status"] == "PACKED"
+
+def test_non_positive_product_id_rejected(client, db):
+    product = create_test_product(db, stock=10)
+
+    for invalid_id in (0, -1):
+        response = client.post(
+            "/api/orders",
+            json={"items": [{"product_id": invalid_id, "quantity": 1}]},
+        )
+        assert response.status_code == 422, response.text
+
+    assert client.get(f"/api/products/{product.id}").json()["stock_quantity"] == 10
+    assert client.get("/api/orders").json() == []
+
+
+def test_unsupported_order_status_rejected(client, db):
+    product = create_test_product(db, stock=5)
+    order_response = place_order(client, (product.id, 1))
+    assert order_response.status_code == 201
+
+    order_id = order_response.json()["id"]
+
+    response = client.patch(
+        f"/api/orders/{order_id}/status",
+        json={"status": "DELIVERED"},
+    )
+
+    assert response.status_code == 422, response.text
+    assert client.get(f"/api/orders/{order_id}").json()["status"] == "PLACED"
+
+def test_stale_order_status_update_returns_conflict(client, db):
+    from fastapi import HTTPException
+    from app import crud
+
+    product = create_test_product(db, stock=5)
+    response = place_order(client, (product.id, 1))
+    assert response.status_code == 201
+
+    order_id = response.json()["id"]
+
+    stale_order = crud.get_order(db, order_id)
+
+    client.patch(
+        f"/api/orders/{order_id}/status",
+        json={"status": "PACKED"},
+    )
+
+    try:
+        crud.update_order_status(db, stale_order, "PACKED")
+        assert False, "Expected stale update to fail"
+    except HTTPException as exc:
+        assert exc.status_code == 409
+
+    assert client.get(f"/api/orders/{order_id}").json()["status"] == "PACKED"

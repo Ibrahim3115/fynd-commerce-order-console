@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Any
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ─── Product ────────────────────────────────────────────────────────────────
@@ -28,16 +28,8 @@ class ProductOut(ProductBase):
 # ─── Order Item ──────────────────────────────────────────────────────────────
 
 class OrderItemIn(BaseModel):
-    product_id: int
-    quantity: int
-
-    @field_validator("quantity")
-    @classmethod
-    def quantity_must_be_positive(cls, v: int) -> int:
-        if v <= 0:
-            raise ValueError("quantity must be a positive integer")
-        return v
-
+    product_id: int = Field(gt=0)
+    quantity: int = Field(gt=0)
 
 class OrderItemOut(BaseModel):
     id: int
@@ -79,7 +71,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str
+    status: str = Field(pattern="^(PACKED|SHIPPED)$")
 
 
 class OrderOut(BaseModel):
@@ -90,8 +82,8 @@ class OrderOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     cancelled_at: Optional[datetime] = None
-    items: List[OrderItemOut] = []
-    status_history: List[OrderStatusHistoryOut] = []
+    items: List[OrderItemOut] = Field(default_factory=list)
+    status_history: List[OrderStatusHistoryOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -104,8 +96,8 @@ class OrderListOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     cancelled_at: Optional[datetime] = None
-    items: List[OrderItemOut] = []
-    status_history: List[OrderStatusHistoryOut] = []
+    items: List[OrderItemOut] = Field(default_factory=list)
+    status_history: List[OrderStatusHistoryOut] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
