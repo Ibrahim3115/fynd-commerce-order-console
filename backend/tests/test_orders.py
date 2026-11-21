@@ -255,3 +255,66 @@ def test_database_persistence_across_restart(tmp_path):
         assert saved_product.name == "Persistent Item"
 
     engine2.dispose()
+
+
+# ─── TEST 14 — Order with multiple products returns item details & count ────
+
+def test_order_with_multiple_products_returns_item_details_and_count(client, db):
+    # 1. Create two test products
+    product_a = create_test_product(db, name="Alpha Product", stock=10, price=100.0)
+    product_b = create_test_product(db, name="Beta Product", stock=15, price=250.0)
+
+    # 2. Place multi-product order: 3 of A and 4 of B (Total items: 7)
+    resp = place_order(client, (product_a.id, 3), (product_b.id, 4))
+    assert resp.status_code == 201, resp.text
+    created = resp.json()
+    order_id = created["id"]
+    order_ref = created["order_reference"]
+
+    # 3. Test GET /api/orders (list endpoint)
+    list_resp = client.get("/api/orders")
+    assert list_resp.status_code == 200
+    orders = list_resp.json()
+    matched = [o for o in orders if o["id"] == order_id]
+    assert len(matched) == 1, f"Created order {order_id} not found in /api/orders"
+    order_in_list = matched[0]
+
+    # Verify items collection is returned in list response
+    assert "items" in order_in_list, "GET /api/orders must return 'items' for each order"
+    items = order_in_list["items"]
+    assert len(items) == 2, f"Expected 2 item entries, got {len(items)}"
+
+    # Verify total item quantity across items (not 0, but 3 + 4 = 7)
+    total_quantity = sum(item["quantity"] for item in items)
+    assert total_quantity == 7, f"Expected total quantity 7, got {total_quantity}"
+
+    # Verify individual product details in list response
+    item_a = next(i for i in items if i["product_id"] == product_a.id)
+    assert item_a["product_name"] == "Alpha Product"
+    assert item_a["product_name_snapshot"] == "Alpha Product"
+    assert item_a["quantity"] == 3
+    assert item_a["unit_price"] == 100.0
+    assert item_a["line_total"] == 300.0
+
+    item_b = next(i for i in items if i["product_id"] == product_b.id)
+    assert item_b["product_name"] == "Beta Product"
+    assert item_b["product_name_snapshot"] == "Beta Product"
+    assert item_b["quantity"] == 4
+    assert item_b["unit_price"] == 250.0
+    assert item_b["line_total"] == 1000.0
+
+    # 4. Test GET /api/orders/{id} (detail endpoint)
+    detail_resp = client.get(f"/api/orders/{order_id}")
+    assert detail_resp.status_code == 200
+    detail = detail_resp.json()
+    assert len(detail["items"]) == 2
+    assert sum(i["quantity"] for i in detail["items"]) == 7
+
+    # 5. Test GET /api/dashboard/stats recent_orders also includes items
+    dash_resp = client.get("/api/dashboard/stats")
+    assert dash_resp.status_code == 200
+    recent = dash_resp.json()["recent_orders"]
+    recent_matched = [o for o in recent if o["id"] == order_id]
+    if recent_matched:
+        assert len(recent_matched[0]["items"]) == 2
+        assert sum(i["quantity"] for i in recent_matched[0]["items"]) == 7

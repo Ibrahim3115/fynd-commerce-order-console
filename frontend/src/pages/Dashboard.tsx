@@ -87,7 +87,9 @@ export const Dashboard: React.FC = () => {
                   <tr key={order.id} className="border-b border-brand-border/50 hover:bg-white/5 transition-colors">
                     <td className="px-5 py-3 font-mono text-xs text-brand-orange">{order.order_reference}</td>
                     <td className="px-5 py-3 text-slate-400">{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="px-5 py-3 text-slate-300">{order.items?.length ?? 0}</td>
+                    <td className="px-5 py-3 text-slate-300 font-mono font-medium">
+                      {order.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) ?? 0}
+                    </td>
                     <td className="px-5 py-3 text-slate-200 font-medium">₹{order.total_amount.toLocaleString()}</td>
                     <td className="px-5 py-3"><StatusBadge status={order.status} /></td>
                     <td className="px-5 py-3">

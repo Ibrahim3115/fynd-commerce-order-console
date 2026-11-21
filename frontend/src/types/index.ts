@@ -13,6 +13,7 @@ export interface OrderItem {
   id: number;
   product_id: number;
   product_name_snapshot: string;
+  product_name?: string;
   quantity: number;
   unit_price: number;
   line_total: number;

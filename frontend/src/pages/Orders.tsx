@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Search, Filter, RefreshCw, X, ChevronRight } from 'lucide-react';
-import { getOrders, updateOrderStatus, cancelOrder } from '../api/orders';
+import { getOrders, getOrder, updateOrderStatus, cancelOrder } from '../api/orders';
 import type { Order } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -28,16 +28,29 @@ interface OrderDetailPanelProps {
 
 const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onMutation }) => {
   const { notify } = useNotification();
+  const [currentOrder, setCurrentOrder] = useState<Order>(order);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    setCurrentOrder(order);
+    getOrder(order.id)
+      .then((fullOrder) => {
+        if (fullOrder) {
+          setCurrentOrder(fullOrder);
+        }
+      })
+      .catch(() => {});
+  }, [order.id, order]);
+
   const advance = async () => {
-    const next = STATUS_TRANSITIONS[order.status];
+    const next = STATUS_TRANSITIONS[currentOrder.status];
     if (!next) return;
     setLoading(true);
     try {
-      await updateOrderStatus(order.id, next);
-      notify(`Order ${order.order_reference} moved to ${next}`, 'success');
+      const updated = await updateOrderStatus(currentOrder.id, next);
+      setCurrentOrder(updated);
+      notify(`Order ${currentOrder.order_reference} moved to ${next}`, 'success');
       onMutation();
     } catch (e: any) {
       notify(e.response?.data?.detail || 'Status update failed', 'error');
@@ -49,8 +62,9 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
   const doCancel = async () => {
     setLoading(true);
     try {
-      await cancelOrder(order.id);
-      notify(`Order ${order.order_reference} cancelled`, 'success');
+      const cancelled = await cancelOrder(currentOrder.id);
+      setCurrentOrder(cancelled);
+      notify(`Order ${currentOrder.order_reference} cancelled`, 'success');
       setConfirmCancel(false);
       onMutation();
     } catch (e: any) {
@@ -69,10 +83,10 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
           <div className="flex items-center justify-between px-6 py-5 border-b border-brand-border sticky top-0 bg-brand-panel z-10">
             <div>
               <p className="text-xs text-slate-500 uppercase tracking-wide">Order Reference</p>
-              <p className="font-mono text-brand-orange font-bold text-lg">{order.order_reference}</p>
+              <p className="font-mono text-brand-orange font-bold text-lg">{currentOrder.order_reference}</p>
             </div>
             <div className="flex items-center gap-3">
-              <StatusBadge status={order.status} />
+              <StatusBadge status={currentOrder.status} />
               <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
@@ -84,23 +98,28 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-brand-card rounded-lg p-3 border border-brand-border">
                 <p className="text-slate-500 text-xs mb-1">Created</p>
-                <p className="text-slate-200">{new Date(order.created_at).toLocaleString()}</p>
+                <p className="text-slate-200">{new Date(currentOrder.created_at).toLocaleString()}</p>
               </div>
               <div className="bg-brand-card rounded-lg p-3 border border-brand-border">
                 <p className="text-slate-500 text-xs mb-1">Updated</p>
-                <p className="text-slate-200">{new Date(order.updated_at).toLocaleString()}</p>
+                <p className="text-slate-200">{new Date(currentOrder.updated_at).toLocaleString()}</p>
               </div>
-              {order.cancelled_at && (
+              {currentOrder.cancelled_at && (
                 <div className="bg-red-900/20 rounded-lg p-3 border border-red-800/40">
                   <p className="text-red-400 text-xs mb-1">Cancelled At</p>
-                  <p className="text-red-300">{new Date(order.cancelled_at).toLocaleString()}</p>
+                  <p className="text-red-300">{new Date(currentOrder.cancelled_at).toLocaleString()}</p>
                 </div>
               )}
             </div>
 
             {/* Items table */}
             <div>
-              <h3 className="text-slate-300 font-semibold text-sm mb-3">Order Items</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-slate-300 font-semibold text-sm">Order Items</h3>
+                <span className="text-xs text-slate-400 font-mono">
+                  {currentOrder.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) ?? 0} total units
+                </span>
+              </div>
               <div className="bg-brand-card border border-brand-border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
@@ -112,19 +131,30 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                     </tr>
                   </thead>
                   <tbody>
-                    {order.items.map((item) => (
-                      <tr key={item.id} className="border-b border-brand-border/50 last:border-0">
-                        <td className="px-4 py-3 text-slate-200">{item.product_name_snapshot}</td>
-                        <td className="px-4 py-3 text-right text-slate-300">{item.quantity}</td>
-                        <td className="px-4 py-3 text-right text-slate-300">₹{item.unit_price.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-right text-slate-100 font-semibold">₹{item.line_total.toLocaleString()}</td>
+                    {currentOrder.items && currentOrder.items.length > 0 ? (
+                      currentOrder.items.map((item) => (
+                        <tr key={item.id} className="border-b border-brand-border/50 last:border-0">
+                          <td className="px-4 py-3 text-slate-200">
+                            <p className="font-medium">{item.product_name || item.product_name_snapshot}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">ID: #{item.product_id}</p>
+                          </td>
+                          <td className="px-4 py-3 text-right text-slate-300 font-mono font-semibold">{item.quantity}</td>
+                          <td className="px-4 py-3 text-right text-slate-300 font-mono">₹{item.unit_price.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right text-slate-100 font-semibold font-mono">₹{item.line_total.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-6 text-center text-slate-500 text-xs">
+                          No items found for this order
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                   <tfoot>
                     <tr className="bg-brand-panel">
                       <td colSpan={3} className="px-4 py-3 text-right text-slate-400 font-medium">Grand Total</td>
-                      <td className="px-4 py-3 text-right text-brand-orange font-bold text-base">₹{order.total_amount.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-brand-orange font-bold text-base">₹{currentOrder.total_amount.toLocaleString()}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -132,15 +162,15 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
             </div>
 
             {/* Status History */}
-            {order.status_history && order.status_history.length > 0 && (
+            {currentOrder.status_history && currentOrder.status_history.length > 0 && (
               <div>
                 <h3 className="text-slate-300 font-semibold text-sm mb-3">Status History</h3>
                 <div className="space-y-2">
-                  {order.status_history.map((h, i) => (
+                  {currentOrder.status_history.map((h, i) => (
                     <div key={h.id} className="flex items-start gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`w-3 h-3 rounded-full mt-0.5 ${i === 0 ? 'bg-brand-orange' : 'bg-brand-border'}`} />
-                        {i < order.status_history.length - 1 && (
+                        {i < currentOrder.status_history.length - 1 && (
                           <div className="w-px flex-1 bg-brand-border mt-1 h-6" />
                         )}
                       </div>
@@ -152,7 +182,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
                           <span className="font-semibold">{h.to_status}</span>
                         </p>
                         <p className="text-xs text-slate-500">{new Date(h.changed_at).toLocaleString()}</p>
-                        {h.notes && <p className="text-xs text-slate-600 mt-0.5">{h.notes}</p>}
+                        {h.notes && <p className="text-xs text-slate-400 mt-0.5">{h.notes}</p>}
                       </div>
                     </div>
                   ))}
@@ -162,16 +192,16 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              {STATUS_TRANSITIONS[order.status] && (
+              {STATUS_TRANSITIONS[currentOrder.status] && (
                 <button
                   onClick={advance}
                   disabled={loading}
                   className="flex-1 py-2.5 bg-brand-orange hover:bg-brand-orange-dark text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {loading ? '...' : NEXT_LABEL[order.status]}
+                  {loading ? '...' : NEXT_LABEL[currentOrder.status]}
                 </button>
               )}
-              {(order.status === 'PLACED' || order.status === 'PACKED') && (
+              {(currentOrder.status === 'PLACED' || currentOrder.status === 'PACKED') && (
                 <button
                   onClick={() => setConfirmCancel(true)}
                   disabled={loading}
@@ -188,7 +218,7 @@ const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({ order, onClose, onM
       <ConfirmModal
         isOpen={confirmCancel}
         title="Cancel Order"
-        message={`Are you sure you want to cancel order ${order.order_reference}? Stock will be restored.`}
+        message={`Are you sure you want to cancel order ${currentOrder.order_reference}? Stock will be restored.`}
         confirmLabel="Yes, Cancel"
         dangerous
         onConfirm={doCancel}
@@ -302,17 +332,22 @@ export const Orders: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="border-b border-brand-border/50 hover:bg-white/5 transition-colors cursor-pointer"
-                  onClick={() => setSelectedOrder(order)}
-                >
-                  <td className="px-5 py-3 font-mono text-xs text-brand-orange">{order.order_reference}</td>
-                  <td className="px-5 py-3 text-slate-400">{new Date(order.created_at).toLocaleDateString()}</td>
-                  <td className="px-5 py-3 text-slate-300">{order.items?.length ?? 0}</td>
-                  <td className="px-5 py-3 text-slate-200 font-medium">₹{order.total_amount.toLocaleString()}</td>
-                  <td className="px-5 py-3"><StatusBadge status={order.status} /></td>
+              {orders.map((order) => {
+                const itemCount = order.items && Array.isArray(order.items)
+                  ? order.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+                  : 0;
+
+                return (
+                  <tr
+                    key={order.id}
+                    className="border-b border-brand-border/50 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => setSelectedOrder(order)}
+                  >
+                    <td className="px-5 py-3 font-mono text-xs text-brand-orange">{order.order_reference}</td>
+                    <td className="px-5 py-3 text-slate-400">{new Date(order.created_at).toLocaleDateString()}</td>
+                    <td className="px-5 py-3 text-slate-200 font-mono font-medium">{itemCount}</td>
+                    <td className="px-5 py-3 text-slate-200 font-medium">₹{order.total_amount.toLocaleString()}</td>
+                    <td className="px-5 py-3"><StatusBadge status={order.status} /></td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -333,8 +368,9 @@ export const Orders: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              );
+            })}
+          </tbody>
           </table>
         )}
       </div>

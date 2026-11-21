@@ -43,6 +43,7 @@ class OrderItemOut(BaseModel):
     id: int
     product_id: int
     product_name_snapshot: str
+    product_name: Optional[str] = None
     quantity: int
     unit_price: float
     line_total: float
@@ -102,6 +103,8 @@ class OrderListOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     cancelled_at: Optional[datetime] = None
+    items: List[OrderItemOut] = []
+    status_history: List[OrderStatusHistoryOut] = []
 
     model_config = {"from_attributes": True}
 

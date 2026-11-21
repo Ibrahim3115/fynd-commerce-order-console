@@ -55,6 +55,10 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
 
+    @property
+    def product_name(self) -> str:
+        return self.product_name_snapshot
+
 
 class OrderStatusHistory(Base):
     __tablename__ = "order_status_history"

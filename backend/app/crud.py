@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from fastapi import HTTPException
 from sqlalchemy import select, func, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 
@@ -123,7 +123,13 @@ def list_orders(
     skip: int = 0,
     limit: int = 50,
 ) -> List[models.Order]:
-    stmt = select(models.Order)
+    stmt = (
+        select(models.Order)
+        .options(
+            selectinload(models.Order.items),
+            selectinload(models.Order.status_history),
+        )
+    )
     if search:
         stmt = stmt.where(models.Order.order_reference.ilike(f"%{search}%"))
     if status:
@@ -134,13 +140,23 @@ def list_orders(
 
 def get_order(db: Session, order_id: int) -> Optional[models.Order]:
     return db.execute(
-        select(models.Order).where(models.Order.id == order_id)
+        select(models.Order)
+        .options(
+            selectinload(models.Order.items),
+            selectinload(models.Order.status_history),
+        )
+        .where(models.Order.id == order_id)
     ).scalar_one_or_none()
 
 
 def get_order_by_reference(db: Session, reference: str) -> Optional[models.Order]:
     return db.execute(
-        select(models.Order).where(models.Order.order_reference == reference)
+        select(models.Order)
+        .options(
+            selectinload(models.Order.items),
+            selectinload(models.Order.status_history),
+        )
+        .where(models.Order.order_reference == reference)
     ).scalar_one_or_none()
 
 
@@ -248,7 +264,13 @@ def get_dashboard_stats(db: Session) -> dict:
     ).scalars().all()
 
     recent_orders = db.execute(
-        select(models.Order).order_by(models.Order.created_at.desc()).limit(5)
+        select(models.Order)
+        .options(
+            selectinload(models.Order.items),
+            selectinload(models.Order.status_history),
+        )
+        .order_by(models.Order.created_at.desc())
+        .limit(5)
     ).scalars().all()
 
     recent_activity = db.execute(
